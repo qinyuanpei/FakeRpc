@@ -95,7 +95,10 @@ builder.Build();
 如果需要服务注册功能，则可以引用内置的扩展包，例如：`FakeRpc.ServiceRegistry.Nacos`，同时加入下列语句：
 
 ```csharp
-builder.EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://192.168.50.162:8848" });
+builder.EnableNacosServiceRegistry(options => 
+{
+    options.ServerAddress = new List<string> { "http://192.168.50.162:8848" };
+});
 ```
 
 更多细节，请参考：[ServerExample](https://hub.fastgit.org/qinyuanpei/FakeRpc/tree/master/src/Example/FakeRpc.Web)。
