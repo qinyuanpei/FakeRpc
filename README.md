@@ -7,8 +7,9 @@
 * [x] 序列化/反序列化：支持`JSON`、`Protobuf`、`MesssagePack`
 * [x] 客户端动态代理：基于`DispatchProxy` 和 `HttpCleintFactory`
 * [x] 服务发现/注册：支持`Redis`、`Consul`、`Nacos`
-* [ ] 负载均衡器：
-* [ ] 接口文档：基于`Swagger`
+* [x] 接口文档：基于`Swagger`的接口文档
+* [ ] 负载均衡器：正在开发中...
+
 
 # 如何使用
 
