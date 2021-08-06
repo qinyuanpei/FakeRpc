@@ -2,6 +2,8 @@
 
 一个基于 `ASP.NET Core` 的轻量级 `RPC` 框架，因其通信建立在 `HTTP` 协议而非 `TCP/IP` 协议上，故不能称之为真正的 `RPC` 框架。由此得名：`FakeRPC`。
 
+![ FakeRpc 原理图](https://raw.fastgit.org/qinyuanpei/FakeRpc/master/src/Screenshots/FakeRpc.png)
+
 话虽如此，`FakeRPC` 实现了主流 `RPC` 框架中常见的功能，例如：灵活、多样化的序列化/反序列化方案、客户端动态代理、服务注册、服务发现、负载均衡、接口文档等等。
 
 * [x] 序列化/反序列化：支持`JSON`、`Protobuf`、`MesssagePack`
