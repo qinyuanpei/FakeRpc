@@ -126,7 +126,7 @@ namespace FakeRpc.Server
                     {
                         ServiceUri = new Uri("https://192.168.50.162:5001"),
                         ServiceName = serviceType.GetServiceName(),
-                        ServiceGroup = serviceType.Namespace,
+                        ServiceGroup = serviceType.GetServiceGroup(),
                         ServiceId = Guid.NewGuid()
                     }); ;
                 }

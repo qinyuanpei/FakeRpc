@@ -26,5 +26,19 @@ namespace FakeRpc.Core
         /// ServiceGroup
         /// </summary>
         public string ServiceGroup { get; set; }
+
+        /// <summary>
+        /// ExtraData
+        /// </summary>
+        public Dictionary<string,string> ExtraData { get; set; }
+
+
+        public void AddExtraData(string key, string value)
+        {
+            if (ExtraData == null) 
+                ExtraData = new Dictionary<string, string>();
+
+            ExtraData[key] = value;
+        }
     }
 }
