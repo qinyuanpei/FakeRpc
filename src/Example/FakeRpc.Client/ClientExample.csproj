@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\FakeRpc.Client\FakeRpc.Client.csproj" />
+    <ProjectReference Include="..\..\FakeRPC.Core\FakeRpc.Core.csproj" />
+    <ProjectReference Include="..\..\FakeRpc.ServiceDiscovery\FakeRpc.ServiceDiscovery.Consul\FakeRpc.ServiceDiscovery.Consul.csproj" />
+    <ProjectReference Include="..\FakeRpc.Web\ServerExample.csproj" />
+  </ItemGroup>
+
+</Project>
