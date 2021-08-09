@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
@@ -27,12 +28,16 @@ namespace FakeRpc.Server
     public class FakeRpcServerBuilder
     {
         private readonly IServiceCollection _services;
+        private readonly IList<Assembly> _externalAssemblies;
+
         public IServiceCollection Services => _services;
-        private List<Assembly> _externalAssemblys = new List<Assembly>();
+
+        public IEnumerable<Type> ServiceTypes => AggregateAssemblies().Where(x => x.IsInterface && x.GetCustomAttribute<FakeRpcAttribute>() != null);
 
         public FakeRpcServerBuilder(IServiceCollection services)
         {
             _services = services;
+            _externalAssemblies = new List<Assembly>();
         }
 
         public FakeRpcServerBuilder AddFakeRpc()
@@ -47,6 +52,9 @@ namespace FakeRpc.Server
             _services.Configure<IISServerOptions>(x => x.AllowSynchronousIO = true);
 
             _services.Configure<MvcOptions>(o => o.Conventions.Add(new FakeRpcModelConvention()));
+
+            _services.AddTransient<FakeRpcProtocolsProvider>();
+
             return this;
         }
 
@@ -92,53 +100,44 @@ namespace FakeRpc.Server
             if (setupAction == null)
                 setupAction = BuildDefaultSwaggerGenAction();
             _services.AddSwaggerGen(setupAction);
-            _services.AddControllers();
             return this;
         }
 
         public FakeRpcServerBuilder AddExternalAssembly(Assembly assembly)
         {
-            if (!_externalAssemblys.Contains(assembly))
-                _externalAssemblys.Add(assembly);
+            if (!_externalAssemblies.Contains(assembly))
+                _externalAssemblies.Add(assembly);
+
+            return this;
+        }
+
+        public FakeRpcServerBuilder AddExternalAssembly(string assemblyPath = null)
+        {
+            if (string.IsNullOrEmpty(assemblyPath))
+                assemblyPath = AppDomain.CurrentDomain.BaseDirectory;
+
+            var assemblyFiles = Directory.GetFiles(assemblyPath);
+            foreach (var assemblyFile in assemblyFiles)
+            {
+                var assembly = Assembly.LoadFrom(Path.Combine(assemblyPath, assemblyFile));
+                if (!_externalAssemblies.Contains(assembly))
+                    _externalAssemblies.Add(assembly);
+            }
 
             return this;
         }
 
         public void Build()
         {
-            // 加载程序集
-            var mvcBuilder = _services.AddMvc();
-            mvcBuilder.ConfigureApplicationPartManager(apm =>
-            {
-                foreach (var assembly in _externalAssemblys)
-                    apm.ApplicationParts.Add(new AssemblyPart(assembly));
-            });
-
-            // 注册服务
-            var serviceProvider = _services.BuildServiceProvider();
-            var serviceRegistry = serviceProvider.GetService<IServiceRegistry>();
-            if (serviceRegistry != null)
-            {
-                var serviceTypes = FromThis().Where(x => x.GetCustomAttribute<FakeRpcAttribute>() != null);
-                foreach (var serviceType in serviceTypes)
-                {
-                    serviceRegistry.Register(new ServiceRegistration()
-                    {
-                        ServiceUri = new Uri("https://192.168.50.162:5001"),
-                        ServiceName = serviceType.GetServiceName(),
-                        ServiceGroup = serviceType.GetServiceGroup(),
-                        ServiceId = Guid.NewGuid()
-                    }); ;
-                }
-            }
+            ConfigAssemblyParts();
+            _services.AddSingleton(this);
         }
 
-        private IEnumerable<Type> FromThis()
+        private IEnumerable<Type> AggregateAssemblies()
         {
             var entryAssembly = Assembly.GetEntryAssembly();
             var feferdAssemblies = entryAssembly.GetReferencedAssemblies().Select(x => Assembly.Load(x));
-            var allAssemblies = new List<Assembly> { entryAssembly }.Concat(feferdAssemblies);
-            allAssemblies = allAssemblies.Concat(_externalAssemblys).Distinct();
+            var allAssemblies = new List<Assembly> { entryAssembly }.Concat(feferdAssemblies).Concat(_externalAssemblies);
             return allAssemblies.SelectMany(x => x.DefinedTypes).Distinct().ToList();
         }
 
@@ -165,6 +164,16 @@ namespace FakeRpc.Server
             };
 
             return setupAction;
+        }
+
+        private void ConfigAssemblyParts()
+        {
+            var mvcBuilder = _services.AddMvc();
+            mvcBuilder.ConfigureApplicationPartManager(apm =>
+            {
+                foreach (var assembly in _externalAssemblies)
+                    apm.ApplicationParts.Add(new AssemblyPart(assembly));
+            });
         }
     }
 }

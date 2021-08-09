@@ -3,11 +3,10 @@ using System;
 using System.Collections.Generic;
 using Nacos.V2;
 using FakeRpc.Core.Mics;
-using System.Threading.Tasks;
 using Nacos.V2.Naming.Dtos;
 using System.Linq;
 
-namespace FakeRpc.ServiceRegistry.Nacos
+namespace FakeRpc.ServiceDiscovery.Nacos
 {
     public class NacosServiceDiscovery: BaseServiceDiscovey
     {
@@ -20,7 +19,9 @@ namespace FakeRpc.ServiceRegistry.Nacos
         public override IEnumerable<Uri> GetService(string serviceName, string serviceGroup)
         {
             var instances = AsyncHelper.RunSync<List<Instance>>(() => _nacosNamingService.GetAllInstances(serviceName, serviceGroup));
-            return instances.Where(x => x.Healthy).Select(x => new Uri($"https://{x.Ip}:{x.Port}"));
+            return instances
+                .Where(x => x.Healthy)
+                .Select(x => new Uri($"{x.GetServiceSchema()}://{x.Ip}:{x.Port}"));
         }
     }
 }

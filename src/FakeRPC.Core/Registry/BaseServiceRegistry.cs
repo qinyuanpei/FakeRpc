@@ -20,7 +20,6 @@ namespace FakeRpc.Core.Registry
             var serviceRegistration = new ServiceRegistration()
             {
                 ServiceUri = serviceUri,
-                ServiceId = Guid.NewGuid(),
                 ServiceName = typeof(TService).GetServiceName(),
                 ServiceGroup = serviceGroup
             };
@@ -50,7 +49,6 @@ namespace FakeRpc.Core.Registry
             var serviceRegistration = new ServiceRegistration()
             {
                 ServiceUri = serviceUri,
-                ServiceId = Guid.NewGuid(),
                 ServiceName = typeof(TService).GetServiceName(),
                 ServiceGroup = serviceGroup
             };
@@ -69,19 +67,11 @@ namespace FakeRpc.Core.Registry
             var serviceRegistration = new ServiceRegistration()
             {
                 ServiceUri = serviceUri,
-                ServiceId = Guid.NewGuid(),
                 ServiceName = typeof(TService).GetServiceName(),
                 ServiceGroup = serviceGroup
             };
 
             return UnregisterAsync(serviceRegistration);
-        }
-
-        public virtual string GetServiceRegistryKey(string serviceGroup, string serviceName)
-        {
-            var firstLetter = serviceName.AsSpan().Slice(0, 1).ToString().ToLower();
-            var otherLetters = serviceName.AsSpan().Slice(1).ToString();
-            return $"rpc:services:{serviceGroup}:{firstLetter}{otherLetters}";
         }
     }
 }

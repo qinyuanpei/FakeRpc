@@ -3,12 +3,13 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using FakeRpc.Core;
 using FakeRpc.Client;
-using FakeRpc.ServiceRegistry.Consul;
+using FakeRpc.ServiceRegistry.Nacos;
 using FakeRpc.Core.LoadBalance;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
-using ServerExample.Services;
+using FakeRpc.Example.Interface;
+using FakeRpc.ServiceDiscovery.Consul;
 
 namespace ClientExample
 {
@@ -50,7 +51,6 @@ namespace ClientExample
             builder.EnableConsulServiceDiscovery(options =>
             {
                 options.BaseUrl = "http://localhost:8500";
-                options.UseHttps = true;
             });
 
 

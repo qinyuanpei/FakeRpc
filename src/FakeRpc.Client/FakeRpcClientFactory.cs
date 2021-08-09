@@ -28,7 +28,7 @@ namespace FakeRpc.Client
         public TClient Create<TClient>(Func<HttpClient, IFakeRpcCalls> rpcCallsFactory = null)
         {
             var httpClientFactory = _serviceProvider.GetService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient(typeof(TClient).GetServiceName());
+            var httpClient = httpClientFactory.CreateClient(typeof(TClient).GetClientName());
             if (rpcCallsFactory == null)
                 rpcCallsFactory = _serviceProvider.GetService<Func<HttpClient, IFakeRpcCalls>>();
 

@@ -1,6 +1,7 @@
 ﻿using DevExpress.Xpo;
 using FakeRpc.Client;
 using FakeRpc.Core.Discovery;
+using FakeRpc.ServiceDiscovery.Nacos;
 using Microsoft.Extensions.DependencyInjection;
 using Nacos.V2.DependencyInjection;
 using System;
@@ -19,8 +20,8 @@ namespace FakeRpc.ServiceRegistry.Nacos
             {
                 opt.ServerAddresses = options.ServerAddress;
                 opt.EndPoint = string.Empty;
-                opt.Namespace = "FakeRpc";
-                opt.NamingUseRpc = true;
+                opt.Namespace = options.Namespace;
+                opt.NamingUseRpc = false;
             });
             builder.Services.AddSingleton<IServiceDiscovery, NacosServiceDiscovery>();
             return builder;

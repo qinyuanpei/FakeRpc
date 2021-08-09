@@ -1,6 +1,7 @@
 ﻿using CSRedis;
 using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
+using FakeRpc.Core.Mics;
 using FakeRpc.Core.Registry;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -30,10 +31,10 @@ namespace FakeRpc.ServiceRegistry.Redis
         {
             var serviceName = serviceRegistration.ServiceName;
             var serviceGroup = serviceRegistration.ServiceGroup;
-            var registryKey = GetServiceRegistryKey(serviceGroup,serviceName);
-            _logger.LogInformation($"Register {serviceGroup}.{serviceName} {serviceRegistration.ServiceUri} ...");
+            var registryKey = $"{Constants.FAKE_RPC_ROUTE_PREFIX}:{serviceGroup.Replace(".",":")}:{serviceName}";
+            _logger.LogInformation($"Register {serviceRegistration.ServiceHost}:{serviceRegistration.ServicePort} to {registryKey} ...");
             var serviceNodes = _redisClient.SMembers<ServiceRegistration>(registryKey)?.ToList();
-            if (!serviceNodes.Any(x => x.ServiceUri == serviceRegistration.ServiceUri && x.ServiceGroup == serviceRegistration.ServiceGroup))
+            if (!serviceNodes.Any(x => x.ServiceUri == serviceRegistration.ServiceUri))
             {
                 _redisClient.SAdd(registryKey, serviceRegistration);
                 Publish(_options.RegisterEventTopic, new { Key = registryKey, Value = serviceRegistration });
@@ -45,10 +46,10 @@ namespace FakeRpc.ServiceRegistry.Redis
         {
             var serviceName = serviceRegistration.ServiceName;
             var serviceGroup = serviceRegistration.ServiceGroup;
-            var registryKey = GetServiceRegistryKey(serviceGroup,serviceName);
-            _logger.LogInformation($"Unregister {serviceGroup}.{serviceName} {serviceRegistration.ServiceUri} ...");
+            var registryKey = $"{Constants.FAKE_RPC_ROUTE_PREFIX}:{serviceGroup.Replace(".", ":")}:{serviceName}";
+            _logger.LogInformation($"Unregister {serviceRegistration.ServiceHost}:{serviceRegistration.ServicePort} from {registryKey} ...");
             var serviceNodes = _redisClient.SMembers<ServiceRegistration>(registryKey)?.ToList();
-            var serviceNode = serviceNodes.FirstOrDefault(x => x.ServiceUri == serviceRegistration.ServiceUri && x.ServiceGroup == serviceRegistration.ServiceGroup);
+            var serviceNode = serviceNodes.FirstOrDefault(x => x.ServiceUri == serviceRegistration.ServiceUri);
             if (serviceNode != null)
             {
                 _redisClient.SRem(registryKey, serviceRegistration);

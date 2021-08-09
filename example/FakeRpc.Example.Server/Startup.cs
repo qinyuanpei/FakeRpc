@@ -11,12 +11,14 @@ using System.Threading.Tasks;
 using ServerExample;
 using FakeRpc.Core;
 using System.Net.Http;
-using ServerExample.Services;
+using FakeRpc.Example.Interface;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using FakeRpc.Core.Registry;
 using CSRedis;
 using FakeRpc.Server;
 using FakeRpc.ServiceRegistry.Nacos;
+using FakeRpc.ServiceRegistry.Consul;
+using FakeRpc.ServiceRegistry.Redis;
 
 namespace ServerExample
 {
@@ -32,8 +34,6 @@ namespace ServerExample
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllersWithViews();
-
             services.AddControllers();
 
             var builder = new FakeRpcServerBuilder(services);
@@ -43,12 +43,16 @@ namespace ServerExample
                 .UseUseProtobuf()
                 .EnableSwagger()
                 .AddExternalAssembly(typeof(GreetService).Assembly)
-                .EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://192.168.50.162:8848" });
+                .AddExternalAssembly(typeof(GreetService).Assembly)
+                //.EnableRedisServiceRegistry(options => options.RedisUrl = "localhost:6379");
+                .EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://localhost:8848" });
+                //.EnableConsulServiceRegistry(options => options.BaseUrl = "http://localhost:8500");
+             
             builder.Build();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime)
         {
             if (env.IsDevelopment())
             {
@@ -70,11 +74,7 @@ namespace ServerExample
                     pattern: "{controller=Home}/{action=Index}/{id?}");
             });
 
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "FakeRpc Services v1");
-            });
+            app.UseFakeRpc(applicationLifetime);
         }
     }
 }

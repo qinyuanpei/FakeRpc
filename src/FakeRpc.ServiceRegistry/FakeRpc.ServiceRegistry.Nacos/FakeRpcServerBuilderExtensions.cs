@@ -20,8 +20,8 @@ namespace FakeRpc.ServiceRegistry.Nacos
             {
                 opt.ServerAddresses = options.ServerAddress;
                 opt.EndPoint = string.Empty;
-                opt.Namespace = "";
-                opt.NamingUseRpc = true;
+                opt.Namespace = options.Namespace;
+                opt.NamingUseRpc = false;
             });
             builder.Services.AddSingleton<IServiceRegistry, NacosServiceRegistry>();
             return builder;

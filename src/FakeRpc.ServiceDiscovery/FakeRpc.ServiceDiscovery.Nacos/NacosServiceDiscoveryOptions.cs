@@ -9,5 +9,7 @@ namespace FakeRpc.ServiceRegistry.Nacos
     public class NacosServiceDiscoveryOptions
     {
         public List<string> ServerAddress { get; set; }
+
+        public string Namespace { get; set; } = string.Empty;
     }
 }

@@ -24,7 +24,7 @@ namespace FakeRpc.Client
 
         public FakeRpcClientBuilder AddRpcClient<TClient>(Action<HttpClient> configureClient)
         {
-            _services.AddHttpClient(typeof(TClient).GetServiceName(), configureClient);
+            _services.AddHttpClient(typeof(TClient).GetClientName(), configureClient);
             _services.AddSingleton<FakeRpcClientFactory>();
             return this;
         }

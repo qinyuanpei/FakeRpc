@@ -3,6 +3,7 @@ using FakeRpc.Core;
 using FakeRpc.Core.Mics;
 using FakeRpc.Core.Registry;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,49 +25,50 @@ namespace FakeRpc.ServiceRegistry.Consul
 
         public override void Register(ServiceRegistration serviceRegistration)
         {
-            var registerID = GetConsulRegisterID(serviceRegistration);
+            var registerID = serviceRegistration.GetServiceId();
+
             AsyncHelper.RunSync<WriteResult>(() => _consulClient.Agent.ServiceDeregister(registerID));
-            AsyncHelper.RunSync<WriteResult>(() => _consulClient.Agent.ServiceRegister(new AgentServiceRegistration()
+
+            var agentServiceRegistration = new AgentServiceRegistration()
             {
                 ID = registerID,
                 Name = serviceRegistration.ServiceName,
-                Address = serviceRegistration.ServiceUri.Host,
-                Port = serviceRegistration.ServiceUri.Port,
+                Address = serviceRegistration.ServiceHost,
+                Port = serviceRegistration.ServicePort,
                 Check = new AgentServiceCheck
                 {
-                    TCP = $"{serviceRegistration.ServiceUri.Host}:{serviceRegistration.ServiceUri.Port}",
+                    TCP = $"{serviceRegistration.ServiceHost}:{serviceRegistration.ServicePort}",
                     Status = HealthStatus.Passing,
                     TLSSkipVerify = true,
                     DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(10),
                     Interval = TimeSpan.FromSeconds(10),
                     Timeout = TimeSpan.FromSeconds(5)
                 },
-                Tags = new string[] { "FakeRpc", serviceRegistration.ServiceGroup }
-            }));
+                Meta = new Dictionary<string, string>()
+                {
+                    { Constants.FAKE_RPC_SERVICE_GROUP, serviceRegistration.ServiceGroup },
+                    { Constants.FAKE_RPC_SERVICE_SCHEMA,serviceRegistration.ServiceSchema },
+                    { Constants.FAKE_RPC_SERVICE_PROVIDER,serviceRegistration.ServiceProvider },
+                    { Constants.FAKE_RPC_SERVICE_INTERFACE, serviceRegistration.ServiceInterface },
+                    { Constants.FAKE_RPC_SERVICE_PROTOCOLS, serviceRegistration.ServiceProtocols }
+                }
+            };
 
-            _logger.LogInformation($"Register {serviceRegistration.ServiceGroup}.{serviceRegistration.ServiceName} {serviceRegistration.ServiceUri} ...");
+            if (serviceRegistration.ExtraData!= null && serviceRegistration.ExtraData.Any())
+            {
+                foreach (var item in serviceRegistration.ExtraData)
+                    agentServiceRegistration.Meta[item.Key] = item.Value;
+            }
+
+            AsyncHelper.RunSync<WriteResult>(() => _consulClient.Agent.ServiceRegister(agentServiceRegistration));
+            _logger.LogInformation($"[REGISTER-SERVICE]  register {JsonConvert.SerializeObject(serviceRegistration)} to Consul ...");
         }
 
         public override void Unregister(ServiceRegistration serviceRegistration)
         {
-            var registerID = GetConsulRegisterID(serviceRegistration);
-            var writeResult = AsyncHelper.RunSync<WriteResult>(() => _consulClient.Agent.ServiceDeregister(registerID));
-        }
-
-        public override string GetServiceRegistryKey(string serviceGroup, string serviceName)
-        {
-            return $"{serviceGroup}/{serviceName}";
-        }
-
-        private string GetConsulRegisterID(ServiceRegistration serviceRegistration)
-        {
-            var serviceHost = serviceRegistration.ServiceUri.Host;
-            var servicePort = serviceRegistration.ServiceUri.Port;
-            var serviceName = serviceRegistration.ServiceName;
-            var serviceGroup = serviceRegistration.ServiceGroup;
-            var serviceRegitryKey = GetServiceRegistryKey(serviceGroup, serviceName);
-            var registerID = $"{serviceRegitryKey}/{serviceHost}:{servicePort}";
-            return registerID;
+            var registerID = serviceRegistration.GetServiceId();
+            AsyncHelper.RunSync<WriteResult>(() => _consulClient.Agent.ServiceDeregister(registerID));
+            _logger.LogInformation($"[UNREGISTER-SERVICE]  unregister {JsonConvert.SerializeObject(serviceRegistration)} from Consul ...");
         }
     }
 }

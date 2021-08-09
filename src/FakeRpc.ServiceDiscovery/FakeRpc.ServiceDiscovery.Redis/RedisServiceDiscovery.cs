@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using static CSRedis.CSRedisClient;
 using FakeRpc.Core.Discovery;
 using FakeRpc.Core;
+using FakeRpc.Core.Mics;
 
 namespace FakeRpc.ServiceRegistry.Redis
 {
@@ -29,9 +30,8 @@ namespace FakeRpc.ServiceRegistry.Redis
 
         public override IEnumerable<Uri> GetService(string serviceName, string serviceGroup)
         {
-            var serviceDiscoveryKey = GetServiceDiscoveryKey(serviceName);
-            var serviceNodes = _redisClient.SMembers<ServiceRegistration>(serviceDiscoveryKey);
-            serviceNodes = serviceNodes.Where(x => x.ServiceGroup == serviceGroup).ToArray();
+            var registryKey = $"{Constants.FAKE_RPC_ROUTE_PREFIX}:{serviceGroup.Replace(".", ":")}:{serviceName}";
+            var serviceNodes = _redisClient.SMembers<ServiceRegistration>(registryKey);
             if (serviceNodes == null)
                 throw new ArgumentException($"Service {serviceGroup}.{serviceName} can't be resolved.");
 

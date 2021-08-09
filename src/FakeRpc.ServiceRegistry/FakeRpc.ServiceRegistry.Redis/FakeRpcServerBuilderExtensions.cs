@@ -15,6 +15,7 @@ namespace FakeRpc.ServiceRegistry.Redis
 
             builder.Services.AddSingleton(options);
             builder.Services.AddSingleton<IServiceRegistry, RedisServiceRegistry>();
+            builder.Services.AddHostedService<RedisHeartBeatCheckService>();
             return builder;
         }
     }

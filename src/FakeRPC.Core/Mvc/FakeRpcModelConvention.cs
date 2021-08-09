@@ -19,6 +19,7 @@ namespace FakeRpc.Core.Mvc
             foreach (var controller in application.Controllers)
             {
                 var type = controller.ControllerType.AsType();
+                type = type.GetInterfaces()[0];
                 var fakeRpc = type.GetCustomAttribute<FakeRpcAttribute>();
                 if (fakeRpc != null)
                 {
@@ -62,15 +63,15 @@ namespace FakeRpc.Core.Mvc
 
             if (!action.Selectors.Any())
             {
-                action.Selectors.Add(CreateActionSelector(controller, action.ActionName));
+                var selector = CreateActionSelector(controller, action.ActionName);
+                action.Selectors.Add(selector);
                 return;
             }
 
             foreach (var selector in action.Selectors)
             {
-                var routePath = controller.ControllerType.GetServiceRoute(action.ActionName);
-                var routeModel = new AttributeRouteModel(new RouteAttribute(routePath));
-                selector.AttributeRouteModel = routeModel;
+                var routeUrl = controller.ControllerType.GetServiceRoute(action.ActionName);
+                selector.AttributeRouteModel = new AttributeRouteModel(new RouteAttribute(routeUrl));
                 selector.ActionConstraints.Add(new HttpMethodActionConstraint(new[] { Constants.FAKE_RPC_HTTP_METHOD }));
             }
         }
@@ -94,11 +95,11 @@ namespace FakeRpc.Core.Mvc
 
         private SelectorModel CreateActionSelector(ControllerModel controller, string actionName)
         {
-            var selectorModel = new SelectorModel();
-            var routePath = controller.ControllerType.GetServiceRoute(actionName);
-            selectorModel.AttributeRouteModel = new AttributeRouteModel(new RouteAttribute(routePath));
-            selectorModel.ActionConstraints.Add(new HttpMethodActionConstraint(new[] { Constants.FAKE_RPC_HTTP_METHOD }));
-            return selectorModel;
+            var selector = new SelectorModel();
+            var routeUrl = controller.ControllerType.GetServiceRoute(actionName);
+            selector.AttributeRouteModel = new AttributeRouteModel(new RouteAttribute(routeUrl));
+            selector.ActionConstraints.Add(new HttpMethodActionConstraint(new[] { Constants.FAKE_RPC_HTTP_METHOD }));
+            return selector;
         }
 
         private bool IsFromBodyEnable(ActionModel action, ParameterModel parameter)
@@ -125,11 +126,6 @@ namespace FakeRpc.Core.Mvc
             selectors.ToList().RemoveAll(selector => selector.AttributeRouteModel == null && 
                 (selector.ActionConstraints == null || !selector.ActionConstraints.Any())
             );
-        }
-
-        private string BuildRoute(string areaName, string serviceGroup, string serviceName, string actionName)
-        {
-            return $"{Constants.FAKE_RPC_ROUTE_PREFIX}/{areaName}/{serviceGroup.Replace(".","/")}/{serviceName}/{actionName}".Replace("//", "/");
         }
     }
 }

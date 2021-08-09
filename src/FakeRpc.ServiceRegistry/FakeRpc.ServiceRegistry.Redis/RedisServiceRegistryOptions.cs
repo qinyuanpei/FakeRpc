@@ -9,5 +9,6 @@ namespace FakeRpc.ServiceRegistry.Redis
         public string RedisUrl { get; set; }
         public string RegisterEventTopic { get; set; } = "evt_service_register";
         public string UnregisterEventTopic { get; set; } = "evt_service_unregister";
+        public TimeSpan HeartBeatInterval { get; set; } = TimeSpan.FromSeconds(180);
     }
 }

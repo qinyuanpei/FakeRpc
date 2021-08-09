@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace FakeRpc.ServiceRegistry.Consul
+namespace FakeRpc.ServiceDiscovery.Consul
 {
     public static class FakeRpcClientBuilderExtensions
     {
