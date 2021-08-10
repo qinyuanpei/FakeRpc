@@ -48,9 +48,26 @@ namespace FakeRpc.Client
             return this;
         }
 
-        public FakeRpcClientBuilder EnableLoadBalance<TStrategy>() where TStrategy: class, ILoadBalanceStrategy
+        public FakeRpcClientBuilder WithLoadBalanceStrategy(LoadBalanceStrategy loadBalanceStrategy)
         {
-            _services.AddTransient<ILoadBalanceStrategy, TStrategy>();
+            switch (loadBalanceStrategy)
+            {
+                case LoadBalanceStrategy.Random:
+                    _services.AddTransient<ILoadBalanceStrategy, RandomStrategy>();
+                    break;
+                case LoadBalanceStrategy.RandomWithWeight:
+                    break;
+                case LoadBalanceStrategy.RoundRobin:
+                    _services.AddSingleton<ILoadBalanceStrategy, RoundRobinStrategy>();
+                    break;
+                case LoadBalanceStrategy.RoundRobinWithWeight:
+                    break;
+                case LoadBalanceStrategy.IpHash:
+                    _services.AddTransient<ILoadBalanceStrategy, IpHashStrategy>();
+                    break;
+
+            }
+            
             return this;
         }
 

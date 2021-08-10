@@ -9,6 +9,7 @@ using static CSRedis.CSRedisClient;
 using FakeRpc.Core.Discovery;
 using FakeRpc.Core;
 using FakeRpc.Core.Mics;
+using FakeRpc.Core.LoadBalance;
 
 namespace FakeRpc.ServiceRegistry.Redis
 {
@@ -18,7 +19,8 @@ namespace FakeRpc.ServiceRegistry.Redis
         private readonly RedisServiceDiscoveryOptions _options;
         private readonly ILogger<RedisServiceDiscovery> _logger;
 
-        public RedisServiceDiscovery(RedisServiceDiscoveryOptions options, ILogger<RedisServiceDiscovery> logger)
+        public RedisServiceDiscovery(RedisServiceDiscoveryOptions options, ILogger<RedisServiceDiscovery> logger, ILoadBalanceStrategy loadBalanceStrategy)
+            : base(loadBalanceStrategy)
         {
             _options = options;
             _redisClient = new CSRedisClient(options.RedisUrl);
@@ -26,9 +28,10 @@ namespace FakeRpc.ServiceRegistry.Redis
             _redisClient.Subscribe((_options.RegisterEventTopic, OnServiceRegister));
             _redisClient.Subscribe((_options.RegisterEventTopic, OnServiceUnregister));
             _logger = logger;
+            _loadBalanceStrategy = loadBalanceStrategy;
         }
 
-        public override IEnumerable<Uri> GetService(string serviceName, string serviceGroup)
+        public override Uri GetService(string serviceName, string serviceGroup)
         {
             var registryKey = $"{Constants.FAKE_RPC_ROUTE_PREFIX}:{serviceGroup.Replace(".", ":")}:{serviceName}";
             var serviceNodes = _redisClient.SMembers<ServiceRegistration>(registryKey);
@@ -36,7 +39,9 @@ namespace FakeRpc.ServiceRegistry.Redis
                 throw new ArgumentException($"Service {serviceGroup}.{serviceName} can't be resolved.");
 
             _logger.LogInformation($"Discovery {serviceNodes.Count()} instances for {serviceName} ...");
-            return serviceNodes.Select(x => x.ServiceUri);
+            var serviceUrls = serviceNodes.Select(x => x.ServiceUri);
+
+            return _loadBalanceStrategy.Select(serviceUrls);
         }
 
         private void OnServiceRegister(SubscribeMessageEventArgs args)

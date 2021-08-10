@@ -10,6 +10,8 @@ using System;
 using System.Threading.Tasks;
 using FakeRpc.Example.Interface;
 using FakeRpc.ServiceDiscovery.Consul;
+using FakeRpc.Core.Discovery;
+using System.Collections.Generic;
 
 namespace ClientExample
 {
@@ -17,7 +19,9 @@ namespace ClientExample
     {
         static async Task Main(string[] args)
         {
-            BenchmarkRunner.Run<TestContext>();
+            var context = new TestContext();
+            context.InitIoc();
+            //BenchmarkRunner.Run<TestContext>();
             Console.ReadKey();
         }
     }
@@ -47,12 +51,15 @@ namespace ClientExample
             });
 
             builder.AddRpcCallsFactory(MessagePackRpcCalls.Factory);
-            builder.EnableLoadBalance<RandomLoadBalanceStrategy>();
-            builder.EnableConsulServiceDiscovery(options =>
+            builder.WithLoadBalanceStrategy(LoadBalanceStrategy.Random);
+            builder.EnableNacosServiceDiscovery(options =>
             {
-                options.BaseUrl = "http://localhost:8500";
+                options.ServerAddress = new List<string> { "http://localhost:8848" };
             });
 
+            var serviceProvider = services.BuildServiceProvider();
+            var serviceDiscovery = serviceProvider.GetService<IServiceDiscovery>();
+            var serviceUrl = serviceDiscovery.GetService<IGreetService>();
 
             return services.BuildServiceProvider();
         }
@@ -91,6 +98,14 @@ namespace ClientExample
             reply = await greetProxy.SayWho();
             var calculatorProxy = _clientFactory.Create<ICalculatorService>(DefaultFakeRpcCalls.Factory);
             var result = calculatorProxy.Random();
+        }
+
+        [Benchmark(Baseline = false, Description = "Test FakeRpc with JSON", OperationsPerInvoke = 1)]
+        public async Task RunDiscovery()
+        {
+            var serviceProvider = InitIoc();
+            var serviceDiscovery = serviceProvider.GetService<IServiceDiscovery>();
+            var serviceUrl = serviceDiscovery.GetService<IGreetService>();
         }
     }
 }
