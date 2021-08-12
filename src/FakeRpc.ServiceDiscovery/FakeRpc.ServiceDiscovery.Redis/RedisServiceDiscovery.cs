@@ -28,7 +28,6 @@ namespace FakeRpc.ServiceRegistry.Redis
             _redisClient.Subscribe((_options.RegisterEventTopic, OnServiceRegister));
             _redisClient.Subscribe((_options.RegisterEventTopic, OnServiceUnregister));
             _logger = logger;
-            _loadBalanceStrategy = loadBalanceStrategy;
         }
 
         public override Uri GetService(string serviceName, string serviceGroup)

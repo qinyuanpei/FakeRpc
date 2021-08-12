@@ -19,9 +19,7 @@ namespace ClientExample
     {
         static async Task Main(string[] args)
         {
-            var context = new TestContext();
-            context.InitIoc();
-            //BenchmarkRunner.Run<TestContext>();
+            BenchmarkRunner.Run<TestContext>();
             Console.ReadKey();
         }
     }
@@ -56,10 +54,6 @@ namespace ClientExample
             {
                 options.ServerAddress = new List<string> { "http://localhost:8848" };
             });
-
-            var serviceProvider = services.BuildServiceProvider();
-            var serviceDiscovery = serviceProvider.GetService<IServiceDiscovery>();
-            var serviceUrl = serviceDiscovery.GetService<IGreetService>();
 
             return services.BuildServiceProvider();
         }
@@ -98,14 +92,6 @@ namespace ClientExample
             reply = await greetProxy.SayWho();
             var calculatorProxy = _clientFactory.Create<ICalculatorService>(DefaultFakeRpcCalls.Factory);
             var result = calculatorProxy.Random();
-        }
-
-        [Benchmark(Baseline = false, Description = "Test FakeRpc with JSON", OperationsPerInvoke = 1)]
-        public async Task RunDiscovery()
-        {
-            var serviceProvider = InitIoc();
-            var serviceDiscovery = serviceProvider.GetService<IServiceDiscovery>();
-            var serviceUrl = serviceDiscovery.GetService<IGreetService>();
         }
     }
 }

@@ -1,0 +1,48 @@
+name: Release
+
+on:
+    push:
+      branches:
+      - master
+
+jobs:
+  build_artifact:    
+    name: Build Artifact
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.200
+    - name: Build Project
+      run: dotnet build /home/runner/work/FakeRpc/FakeRpc/src/FakeRpc.sln -c Release --source https://api.nuget.org/v3/index.json
+    - name: Create Artifact
+      run: dotnet pack /home/runner/work/FakeRpc/FakeRpc/src/FakeRpc.sln -o /home/runner/work/nuget_pkgs -c Release --no-build --source https://api.nuget.org/v3/index.json
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: nuget_pkgs
+        path: /home/runner/work/nuget_pkgs  
+
+  release_nuget:
+      name: Publish Package
+      needs: build_artifact
+      runs-on: ubuntu-latest
+  
+      steps:
+        - name: Download Artifacts
+          uses: actions/download-artifact@v1
+          with:
+            name: nuget_pkgs
+        - name: Show NuGet Packages
+          run: ls nuget_pkgs
+        - name: Show .NET Version
+          run: dotnet --version  
+        - name: Push NuGet Packages
+          run: |
+            for file in nuget_pkgs/*.nupkg
+            do
+              dotnet nuget push $file -k ${{ secrets.NuGetAPIKey }} --skip-duplicate -s https://www.nuget.org/api/v2/package
+            done
