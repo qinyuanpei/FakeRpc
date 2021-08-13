@@ -1,16 +1,33 @@
 # FakeRPC
 
+![GitHub](https://img.shields.io/github/license/qinyuanpei/FakeRpc) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/qinyuanpei/FakeRpc/Release) 
+
+
 一个基于 `ASP.NET Core` 的轻量级 `RPC` 框架，因其通信建立在 `HTTP` 协议而非 `TCP/IP` 协议上，故不能称之为真正的 `RPC` 框架。由此得名：`FakeRPC`。
 
 ![ FakeRpc 原理图](https://raw.fastgit.org/qinyuanpei/FakeRpc/master/src/Screenshots/FakeRpc.png)
 
-话虽如此，`FakeRPC` 实现了主流 `RPC` 框架中常见的功能，例如：灵活、多样化的序列化/反序列化方案、客户端动态代理、服务注册、服务发现、负载均衡、接口文档等等。
+# 安装方法
 
-* [x] 序列化/反序列化：支持`JSON`、`Protobuf`、`MesssagePack`
-* [x] 客户端动态代理：基于`DispatchProxy` 和 `HttpCleintFactory`
-* [x] 服务发现/注册：支持`Redis`、`Consul`、`Nacos`
-* [x] 接口文档：基于`Swagger`的接口文档
-* [ ] 负载均衡器：正在开发中...
+请按需选择合适的库进行安装:
+
+```
+dotnet add package FakeRpc.Core
+dotnet add package FakeRpc.Server
+dotnet add package FakeRpc.Client
+dotnet add package FakeRpc.ServiceRegistry.Consul
+dotnet add package FakeRpc.ServiceRegistry.Nacos
+dotnet add package FakeRpc.ServiceDiscovery.Consul
+dotnet add package FakeRpc.ServiceDiscovery.Nacos
+```
+
+# 主要特性
+
+* [x] 序列化/反序列化：支持 `JSON` 、 `Protobuf` 、 `MesssagePack` 
+* [x] 客户端动态代理：基于 `DispatchProxy` 和 `HttpCleintFactory`
+* [x] 服务发现/注册：支持 `Redis` 、 `Consul` 、`Nacos`
+* [x] 接口文档：基于 `Swagger` 的接口文档
+* [x] 负载均衡器：支持 `随机` 、 `轮询` 、 `哈希一致性` 等
 
 
 # 如何使用
@@ -28,7 +45,7 @@ public interface IGreetService
 }
 ```
 
-定义实体，并附加序列化相关的特性：
+定义实体，并附加序列化相关的特性，`MessagePack`可以忽略`[Key]`标签，`Protobuf`必须添加`[ProtoMember]`标签：
 
 ```csharp
 [Serializable]
@@ -70,22 +87,34 @@ public class GreetService : IGreetService
 }
 ```
 
-更多细节，请参考：[ServerExample](https://hub.fastgit.org/qinyuanpei/FakeRpc/tree/master/src/Example/FakeRpc.Web)。
+更多细节，请参考：[FakeRpc.Example.Interface](https://hub.fastgit.org/qinyuanpei/FakeRpc/tree/master/example/FakeRpc.Example.Interface/)。
 
 * 配置服务端
 
 新建一个`ASP.NET Core`项目，添加对`FakeRpc.Core`和`FakeRpc.Server`两个程序集的引用：
 
 ```csharp
-services.AddControllers();
+public void ConfigureServices(IServiceCollection services)
+{
+    // ...
+    var builder = new FakeRpcServerBuilder(services);
+    builder
+        .AddFakeRpc()
+        .UseMessagePack()
+        .UseUseProtobuf()
+        .EnableSwagger()
+        .AddExternalAssembly(typeof(GreetService).Assembly)
+        .EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://localhost:8848" });
+             
+    builder.Build();
+}
 
-var builder = new FakeRpcServerBuilder(services);
-builder
-    .AddFakeRpc()
-    .UseMessagePack()
-    .UseUseProtobuf()
-    .AddExternalAssembly(typeof(GreetService).Assembly)
-builder.Build();
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime)
+{
+
+    // ...
+    app.UseFakeRpc(applicationLifetime);
+}
 ```
 
 以上为服务端最小化配置，如果需要开启接口文档，则可以追加以下语句：`EnableSwagger()`。
@@ -97,7 +126,7 @@ builder.Build();
 ```csharp
 builder.EnableNacosServiceRegistry(options => 
 {
-    options.ServerAddress = new List<string> { "http://192.168.50.162:8848" };
+    options.ServerAddress = new List<string> { "http://localhost:8848" };
 });
 ```
 
@@ -148,8 +177,9 @@ builder.EnableConsulServiceDiscovery(options =>
 });
 ```
 
-更多细节，请参考：[ClientExample](https://hub.fastgit.org/qinyuanpei/FakeRpc/tree/master/src/Example/FakeRpc.Client)。
+更多细节，请参考：[FakeRpc.Eaxmple.Client](https://hub.fastgit.org/qinyuanpei/FakeRpc/tree/master/src/example/FakeRpc.Eaxmple.Client)。
 
 # 更多
 
+Todo
 
