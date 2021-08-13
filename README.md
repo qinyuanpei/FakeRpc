@@ -104,12 +104,18 @@ public void ConfigureServices(IServiceCollection services)
         .UseUseProtobuf()
         .EnableSwagger()
         .AddExternalAssembly(typeof(GreetService).Assembly)
-        .EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://localhost:8848" });
+        .EnableNacosServiceRegistry(options => {
+            options.ServerAddress = new List<string> { "http://localhost:8848" };
+        });
              
     builder.Build();
 }
 
-public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime)
+public void Configure(
+    IApplicationBuilder app, 
+    IWebHostEnvironment env, 
+    IHostApplicationLifetime applicationLifetime
+)
 {
 
     // ...
