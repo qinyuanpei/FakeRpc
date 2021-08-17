@@ -6,6 +6,6 @@ namespace FakeRpc.Core.LoadBalance
 {
     public interface ILoadBalanceStrategy
     {
-        TUpstream Select<TUpstream>(IEnumerable<TUpstream> upstreamInfos);
+        TElement Select<TElement>(IEnumerable<TElement> elements) where TElement : ServiceRegistration;
     }
 }

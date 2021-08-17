@@ -59,6 +59,11 @@ namespace FakeRpc.Core
         /// </summary>
         public Dictionary<string,string> ExtraData { get; set; }
 
+        /// <summary>
+        /// ServiceWeight
+        /// </summary>
+        public int ServiceWeight { get; set; }
+
 
         public void AddExtraData(string key, string value)
         {

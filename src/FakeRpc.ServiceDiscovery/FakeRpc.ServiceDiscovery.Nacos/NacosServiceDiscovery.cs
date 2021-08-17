@@ -6,10 +6,11 @@ using FakeRpc.Core.Mics;
 using Nacos.V2.Naming.Dtos;
 using System.Linq;
 using FakeRpc.Core.LoadBalance;
+using FakeRpc.Core;
 
 namespace FakeRpc.ServiceDiscovery.Nacos
 {
-    public class NacosServiceDiscovery: BaseServiceDiscovey
+    public class NacosServiceDiscovery : BaseServiceDiscovey
     {
         private readonly INacosNamingService _nacosNamingService;
 
@@ -19,14 +20,22 @@ namespace FakeRpc.ServiceDiscovery.Nacos
             _nacosNamingService = nacosNamingService;
         }
 
-        public override Uri GetService(string serviceName, string serviceGroup)
+        public override ServiceRegistration GetService(string serviceName, string serviceGroup)
         {
             var instances = AsyncHelper.RunSync<List<Instance>>(() => _nacosNamingService.GetAllInstances(serviceName, serviceGroup));
-            var serviceUrls = instances
+            var serviceRegistrations = instances
                 .Where(x => x.Healthy)
-                .Select(x => new Uri($"{x.GetServiceSchema()}://{x.Ip}:{x.Port}"));
+                .Select(x => new ServiceRegistration
+                {
+                    ServiceName = x.ServiceName,
+                    ServiceUri = new Uri($"{x.GetServiceSchema()}://{x.Ip}:{x.Port}"),
+                    ServiceInterface = x.Metadata[Constants.FAKE_RPC_SERVICE_INTERFACE],
+                    ServiceProtocols =  x.Metadata[Constants.FAKE_RPC_SERVICE_PROTOCOLS],
+                    ServiceGroup = x.Metadata[Constants.FAKE_RPC_SERVICE_GROUP],
+                    ServiceWeight = (int)x.Weight * 100,
+                });
 
-            return _loadBalanceStrategy.Select(serviceUrls);
+            return _loadBalanceStrategy.Select(serviceRegistrations);
         }
     }
 }

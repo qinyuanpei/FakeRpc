@@ -14,7 +14,7 @@ namespace FakeRpc.Core.Discovery
             _loadBalanceStrategy = loadBalanceStrategy;
         }
 
-        public Uri GetService<TService>(string serviceGroup = null)
+        public ServiceRegistration GetService<TService>(string serviceGroup = null)
         {
             if (string.IsNullOrEmpty(serviceGroup))
                 serviceGroup = typeof(TService).GetServiceGroup();
@@ -23,7 +23,7 @@ namespace FakeRpc.Core.Discovery
             return GetService(serviceName, serviceGroup);
         }
 
-        public virtual Uri GetService(string serviceName, string serviceGroup)
+        public virtual ServiceRegistration GetService(string serviceName, string serviceGroup)
         {
             throw new NotImplementedException();
         }

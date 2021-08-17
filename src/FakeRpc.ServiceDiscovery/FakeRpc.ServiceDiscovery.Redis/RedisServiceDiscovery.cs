@@ -30,7 +30,7 @@ namespace FakeRpc.ServiceRegistry.Redis
             _logger = logger;
         }
 
-        public override Uri GetService(string serviceName, string serviceGroup)
+        public override ServiceRegistration GetService(string serviceName, string serviceGroup)
         {
             var registryKey = $"{Constants.FAKE_RPC_ROUTE_PREFIX}:{serviceGroup.Replace(".", ":")}:{serviceName}";
             var serviceNodes = _redisClient.SMembers<ServiceRegistration>(registryKey);
@@ -40,7 +40,7 @@ namespace FakeRpc.ServiceRegistry.Redis
             _logger.LogInformation($"Discovery {serviceNodes.Count()} instances for {serviceName} ...");
             var serviceUrls = serviceNodes.Select(x => x.ServiceUri);
 
-            return _loadBalanceStrategy.Select(serviceUrls);
+            return _loadBalanceStrategy.Select(serviceNodes);
         }
 
         private void OnServiceRegister(SubscribeMessageEventArgs args)

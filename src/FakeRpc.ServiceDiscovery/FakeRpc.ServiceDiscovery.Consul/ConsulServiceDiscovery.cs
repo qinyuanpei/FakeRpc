@@ -1,5 +1,6 @@
 ﻿using Consul;
 using CSRedis;
+using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
 using FakeRpc.Core.LoadBalance;
 using FakeRpc.Core.Mics;
@@ -22,14 +23,21 @@ namespace FakeRpc.ServiceDiscovery.Consul
             _consulClient = new ConsulClient(new ConsulClientConfiguration() { Address = new Uri(options.BaseUrl) });
         }
 
-        public override Uri GetService(string serviceName, string serviceGroup)
+        public override ServiceRegistration GetService(string serviceName, string serviceGroup)
         {
             var services = AsyncHelper.RunSync<QueryResult<ServiceEntry[]>>(() => _consulClient.Health.Service(serviceName));
             var serviceUrls = services.Response
                 .ToList()
                 .Where(x => x.Service.GetServiceGroup() == serviceGroup)
-                .Select(x => new Uri($"{x.Service.GetServiceSchema()}://{x.Service.Address}:{x.Service.Port}"))
-                .ToList();
+                .Select(x => new ServiceRegistration()
+                {
+                    ServiceName = x.Service.Service,
+                    ServiceUri = new Uri($"{x.Service.GetServiceSchema()}://{x.Service.Address}:{x.Service.Port}"),
+                    ServiceGroup = x.Service.Meta[Constants.FAKE_RPC_SERVICE_GROUP],
+                    ServiceInterface = x.Service.Meta[Constants.FAKE_RPC_SERVICE_INTERFACE],
+                    ServiceProtocols = x.Service.Meta[Constants.FAKE_RPC_SERVICE_PROTOCOLS],
+                    ServiceWeight = 1
+                });
 
             return _loadBalanceStrategy.Select(serviceUrls);
         }

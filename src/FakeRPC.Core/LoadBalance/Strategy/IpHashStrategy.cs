@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace FakeRpc.Core.LoadBalance
+namespace FakeRpc.Core.LoadBalance.Strategy
 {
     public class IpHashStrategy : ILoadBalanceStrategy
     {
@@ -16,11 +16,11 @@ namespace FakeRpc.Core.LoadBalance
             _ipAddress = ipAddress ?? GetLocalIP();
         }
 
-        public TUpstreamInfo Select<TUpstreamInfo>(IEnumerable<TUpstreamInfo> upstreamInfos)
+        public TElement Select<TElement>(IEnumerable<TElement> elements) where TElement : ServiceRegistration
         {
             int hashCode = Math.Abs(_ipAddress.GetHashCode());
-            int index = hashCode % upstreamInfos.Count();
-            return upstreamInfos.ElementAt(index);
+            int index = hashCode % elements.Count();
+            return elements.ElementAt(index);
         }
 
         private string GetLocalIP()

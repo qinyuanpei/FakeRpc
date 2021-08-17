@@ -2,6 +2,7 @@
 using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
 using FakeRpc.Core.LoadBalance;
+using FakeRpc.Core.LoadBalance.Strategy;
 using FakeRpc.Core.Mics;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -56,11 +57,13 @@ namespace FakeRpc.Client
                     _services.AddTransient<ILoadBalanceStrategy, RandomStrategy>();
                     break;
                 case LoadBalanceStrategy.RandomWithWeight:
+                    _services.AddTransient<ILoadBalanceStrategy, RandomWithWeightStrategy>();
                     break;
                 case LoadBalanceStrategy.RoundRobin:
                     _services.AddSingleton<ILoadBalanceStrategy, RoundRobinStrategy>();
                     break;
                 case LoadBalanceStrategy.RoundRobinWithWeight:
+                    _services.AddSingleton<ILoadBalanceStrategy, RoundRobinWithWeightStrategry>();
                     break;
                 case LoadBalanceStrategy.IpHash:
                     _services.AddTransient<ILoadBalanceStrategy, IpHashStrategy>();
