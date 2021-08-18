@@ -41,7 +41,7 @@ namespace FakeRpc.Server
                     {
                         serviceRegistry.Register(new ServiceRegistration()
                         {
-                            ServiceUri = new Uri("https://192.168.50.162:5001"),
+                            ServiceUri = new Uri("http://192.168.6.24:5800"),
                             ServiceName = serviceType.GetServiceName(),
                             ServiceGroup = serviceType.GetServiceGroup(),
                             ServiceInterface = serviceType.FullName,
@@ -65,7 +65,7 @@ namespace FakeRpc.Server
                     {
                         serviceRegistry.Unregister(new ServiceRegistration()
                         {
-                            ServiceUri = new Uri("https://192.168.50.162:5001"),
+                            ServiceUri = new Uri("http://192.168.6.24:5800"),
                             ServiceName = serviceType.GetServiceName(),
                             ServiceGroup = serviceType.GetServiceGroup(),
                             ServiceInterface = serviceType.FullName,

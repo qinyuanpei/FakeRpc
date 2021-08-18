@@ -19,6 +19,7 @@ using FakeRpc.Server;
 using FakeRpc.ServiceRegistry.Nacos;
 using FakeRpc.ServiceRegistry.Consul;
 using FakeRpc.ServiceRegistry.Redis;
+using System.Net;
 
 namespace ServerExample
 {
@@ -44,8 +45,8 @@ namespace ServerExample
                 .EnableSwagger()
                 .AddExternalAssembly(typeof(GreetService).Assembly)
                 .AddExternalAssembly(typeof(GreetService).Assembly)
-                //.EnableRedisServiceRegistry(options => options.RedisUrl = "localhost:6379");
-                .EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://localhost:8848" });
+                .EnableRedisServiceRegistry(options => options.RedisUrl = "localhost:6379");
+                //.EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://localhost:8848" });
                 //.EnableConsulServiceRegistry(options => options.BaseUrl = "http://localhost:8500");
              
             builder.Build();

@@ -24,7 +24,7 @@ dotnet add package FakeRpc.ServiceDiscovery.Nacos
 # 主要特性
 
 * [x] 序列化/反序列化：支持 `JSON` 、 `Protobuf` 、 `MesssagePack` 
-* [x] 客户端动态代理：基于 `DispatchProxy` 和 `HttpCleintFactory`
+* [x] 客户端动态代理：基于 `DispatchProxy` 和 `HttpClientFactory`
 * [x] 服务发现/注册：支持 `Redis` 、 `Consul` 、`Nacos`
 * [x] 接口文档：基于 `Swagger` 的接口文档
 * [x] 负载均衡器：支持 `随机` 、 `轮询` 、 `哈希一致性` 等

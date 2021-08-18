@@ -7,7 +7,7 @@ namespace FakeRpc.Core.Discovery
 {
     public interface IServiceDiscovery
     {
-        ServiceRegistration GetService<TService>(string serviceNGroup = null);
+        ServiceRegistration GetService<TService>(string serviceGroup = null);
         ServiceRegistration GetService(string serviceName, string serviceGroup);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using FakeRpc.Core;
+using FakeRpc.Core.Discovery;
 using FakeRpc.Core.Mics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
@@ -35,7 +36,7 @@ namespace FakeRpc.Client
             var clientProxy = DispatchProxy.Create<TClient, ClientProxyBase>();
             (clientProxy as ClientProxyBase).HttpClient = httpClient;
             (clientProxy as ClientProxyBase).ServiceType = typeof(TClient);
-            (clientProxy as ClientProxyBase).RpcCalls = rpcCallsFactory == null ? 
+            (clientProxy as ClientProxyBase).RpcCalls = rpcCallsFactory == null ?
                 new DefaultFakeRpcCalls(httpClient) : rpcCallsFactory(httpClient);
 
             return clientProxy;
@@ -43,12 +44,14 @@ namespace FakeRpc.Client
 
         public TClient Create<TClient>(Uri baseUri, Func<HttpClient, IFakeRpcCalls> rpcCallsFactory = null)
         {
+            var httpClientFactory = _serviceProvider.GetService<IHttpClientFactory>();
             var clientProxy = DispatchProxy.Create<TClient, ClientProxyBase>();
-            var httpClient = new HttpClient() { BaseAddress = baseUri };
+            var httpClient = httpClientFactory.CreateClient();
+            httpClient.BaseAddress = baseUri;
             if (rpcCallsFactory == null)
                 rpcCallsFactory = _serviceProvider.GetService<Func<HttpClient, IFakeRpcCalls>>();
 
-            (clientProxy as ClientProxyBase).HttpClient = new HttpClient() { BaseAddress = baseUri };
+            (clientProxy as ClientProxyBase).HttpClient = httpClient;
             (clientProxy as ClientProxyBase).ServiceType = typeof(TClient);
             (clientProxy as ClientProxyBase).RpcCalls = rpcCallsFactory == null ?
                 new DefaultFakeRpcCalls(httpClient) : rpcCallsFactory(httpClient);
@@ -61,5 +64,38 @@ namespace FakeRpc.Client
             var baseUri = new Uri(baseUrl);
             return Create<TClient>(baseUri, rpcCallsFactory);
         }
+
+        public TClient Discover<TClient>()
+        {
+            var serviceDiscovery = _serviceProvider.GetService<IServiceDiscovery>();
+            var serviceRegistration = serviceDiscovery.GetService<TClient>();
+            if (serviceRegistration == null)
+                throw new Exception($"Service {typeof(TClient).FullName} is not registered or not healthy");
+
+            var clientProxy = DispatchProxy.Create<TClient, ClientProxyBase>();
+            var httpClientFactory = _serviceProvider.GetService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            httpClient.BaseAddress = serviceRegistration.ServiceUri;
+
+            if (string.IsNullOrEmpty(serviceRegistration.ServiceProtocols))
+                throw new Exception($"Service {typeof(TClient).FullName} doesn't have protocols infomation");
+
+            var protocols = serviceRegistration.ServiceProtocols.Split(new char[] { ',' });
+            var rpcCallFactory = _rpcCallsMapping[protocols[0]];
+
+            (clientProxy as ClientProxyBase).HttpClient = httpClient;
+            (clientProxy as ClientProxyBase).ServiceType = typeof(TClient);
+            (clientProxy as ClientProxyBase).RpcCalls = rpcCallFactory(httpClient);
+
+            return clientProxy;
+        }
+
+        private static Dictionary<string, Func<HttpClient, IFakeRpcCalls>> _rpcCallsMapping =
+            new Dictionary<string, Func<HttpClient, IFakeRpcCalls>>()
+            {
+                { FakeRpcMediaTypes.Default,DefaultFakeRpcCalls.Factory },
+                { FakeRpcMediaTypes.MessagePack,MessagePackRpcCalls.Factory},
+                { FakeRpcMediaTypes.Protobuf, ProtobufRpcCalls.Factory }
+            };
     }
 }

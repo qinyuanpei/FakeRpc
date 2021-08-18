@@ -21,6 +21,10 @@ namespace ServerExample
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    webBuilder.ConfigureKestrel(options =>
+                    {
+                        options.ListenAnyIP(8000, x => x.Protocols = HttpProtocols.Http1);
+                    });
                     webBuilder.UseStartup<Startup>();
                 });
     }
