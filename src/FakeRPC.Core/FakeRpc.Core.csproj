@@ -13,6 +13,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
     <PackageReference Include="protobuf-net" Version="3.0.101" />
+    <PackageReference Include="SpanNetty.Buffers" Version="0.7.2012.2221" />
+    <PackageReference Include="SpanNetty.Transport" Version="0.7.2012.2221" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
   </ItemGroup>
 

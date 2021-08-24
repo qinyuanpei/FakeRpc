@@ -20,6 +20,7 @@ using FakeRpc.ServiceRegistry.Nacos;
 using FakeRpc.ServiceRegistry.Consul;
 using FakeRpc.ServiceRegistry.Redis;
 using System.Net;
+using FakeRpc.Server.Netty;
 
 namespace ServerExample
 {
@@ -50,6 +51,9 @@ namespace ServerExample
                 //.EnableConsulServiceRegistry(options => options.BaseUrl = "http://localhost:8500");
              
             builder.Build();
+
+            builder.AddNetty();
+            builder.UseNetty().Wait();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

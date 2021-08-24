@@ -19,6 +19,8 @@
 
   <ItemGroup>
     <PackageReference Include="protobuf-net" Version="3.0.101" />
+    <PackageReference Include="SpanNetty.Buffers" Version="0.7.2012.2221" />
+    <PackageReference Include="SpanNetty.Transport" Version="0.7.2012.2221" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.4" />
   </ItemGroup>
 
@@ -29,6 +31,12 @@
     <ProjectReference Include="..\..\src\FakeRpc.ServiceRegistry\FakeRpc.ServiceRegistry.Nacos\FakeRpc.ServiceRegistry.Nacos.csproj" />
     <ProjectReference Include="..\..\src\FakeRpc.ServiceRegistry\FakeRpc.ServiceRegistry.Redis\FakeRpc.ServiceRegistry.Redis.csproj" />
     <ProjectReference Include="..\FakeRpc.Example.Interface\FakeRpc.Example.Interface.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="FakeRpc.Server.Netty">
+      <HintPath>..\..\src\FakeRpc.Server.Netty\bin\Debug\netcoreapp3.1\FakeRpc.Server.Netty.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

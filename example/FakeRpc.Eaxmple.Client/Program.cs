@@ -3,6 +3,7 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using FakeRpc.Core;
 using FakeRpc.Client;
+using FakeRpc.Client.Netty;
 using FakeRpc.ServiceRegistry.Nacos;
 using FakeRpc.Core.LoadBalance;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,8 +20,13 @@ namespace ClientExample
     {
         static async Task Main(string[] args)
         {
-            BenchmarkRunner.Run<TestContext>();
-            Console.ReadKey();
+            //BenchmarkRunner.Run<TestContext>();
+            //Console.ReadKey();
+
+            var services = new ServiceCollection();
+            var builder = new FakeRpcClientBuilder(services);
+            builder.AddNetty();
+            builder.UseNetty().Wait();
         }
     }
 
