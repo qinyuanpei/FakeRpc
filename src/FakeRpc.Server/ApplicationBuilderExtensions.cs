@@ -8,6 +8,7 @@ using FakeRpc.Core.Registry;
 using FakeRpc.Core.Mvc;
 using FakeRpc.Core;
 using FakeRpc.Core.Mics;
+using Microsoft.Extensions.Options;
 
 namespace FakeRpc.Server
 {
@@ -32,12 +33,12 @@ namespace FakeRpc.Server
         {
             using (var scope = serviceProvider.CreateScope())
             {
-                var builder = scope.ServiceProvider.GetService<FakeRpcServerBuilder>();
+                var options = scope.ServiceProvider.GetService<IOptions<FakeRpcServerOptions>>();
                 var serviceRegistry = scope.ServiceProvider.GetService<IServiceRegistry>();
                 var protocolsProvider = scope.ServiceProvider.GetService<FakeRpcProtocolsProvider>();
                 if (serviceRegistry != null)
                 {
-                    foreach (var serviceType in builder.ServiceTypes)
+                    foreach (var serviceType in options.Value.ServiceTypes)
                     {
                         serviceRegistry.Register(new ServiceRegistration()
                         {
@@ -56,12 +57,12 @@ namespace FakeRpc.Server
         {
             using (var scope = serviceProvider.CreateScope())
             {
-                var builder = scope.ServiceProvider.GetService<FakeRpcServerBuilder>();
+                var options = scope.ServiceProvider.GetService<IOptions<FakeRpcServerOptions>>();
                 var serviceRegistry = scope.ServiceProvider.GetService<IServiceRegistry>();
                 var protocolsProvider = scope.ServiceProvider.GetService<FakeRpcProtocolsProvider>();
                 if (serviceRegistry != null)
                 {
-                    foreach (var serviceType in builder.ServiceTypes)
+                    foreach (var serviceType in options.Value.ServiceTypes)
                     {
                         serviceRegistry.Unregister(new ServiceRegistration()
                         {

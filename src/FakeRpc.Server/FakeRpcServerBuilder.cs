@@ -28,16 +28,14 @@ namespace FakeRpc.Server
     public class FakeRpcServerBuilder
     {
         private readonly IServiceCollection _services;
-        private readonly IList<Assembly> _externalAssemblies;
-
         public IServiceCollection Services => _services;
 
-        public IEnumerable<Type> ServiceTypes => AggregateAssemblies().Where(x => x.IsInterface && x.GetCustomAttribute<FakeRpcAttribute>() != null);
+        private FakeRpcServerOptions _options = new FakeRpcServerOptions();
+        public FakeRpcServerOptions Options => _options;
 
         public FakeRpcServerBuilder(IServiceCollection services)
         {
             _services = services;
-            _externalAssemblies = new List<Assembly>();
         }
 
         public FakeRpcServerBuilder AddFakeRpc()
@@ -105,8 +103,8 @@ namespace FakeRpc.Server
 
         public FakeRpcServerBuilder AddExternalAssembly(Assembly assembly)
         {
-            if (!_externalAssemblies.Contains(assembly))
-                _externalAssemblies.Add(assembly);
+            if (!_options.ExternalAssemblies.Contains(assembly))
+                _options.ExternalAssemblies.Add(assembly);
 
             return this;
         }
@@ -120,8 +118,7 @@ namespace FakeRpc.Server
             foreach (var assemblyFile in assemblyFiles)
             {
                 var assembly = Assembly.LoadFrom(Path.Combine(assemblyPath, assemblyFile));
-                if (!_externalAssemblies.Contains(assembly))
-                    _externalAssemblies.Add(assembly);
+                AddExternalAssembly(assembly);
             }
 
             return this;
@@ -130,15 +127,7 @@ namespace FakeRpc.Server
         public void Build()
         {
             ConfigAssemblyParts();
-            _services.AddSingleton(this);
-        }
-
-        private IEnumerable<Type> AggregateAssemblies()
-        {
-            var entryAssembly = Assembly.GetEntryAssembly();
-            var feferdAssemblies = entryAssembly.GetReferencedAssemblies().Select(x => Assembly.Load(x));
-            var allAssemblies = new List<Assembly> { entryAssembly }.Concat(feferdAssemblies).Concat(_externalAssemblies);
-            return allAssemblies.SelectMany(x => x.DefinedTypes).Distinct().ToList();
+            _services.Configure<FakeRpcServerOptions>(x => x = _options);
         }
 
         private Action<SwaggerGenOptions> BuildDefaultSwaggerGenAction()
@@ -171,7 +160,7 @@ namespace FakeRpc.Server
             var mvcBuilder = _services.AddMvc();
             mvcBuilder.ConfigureApplicationPartManager(apm =>
             {
-                foreach (var assembly in _externalAssemblies)
+                foreach (var assembly in _options.ExternalAssemblies)
                     apm.ApplicationParts.Add(new AssemblyPart(assembly));
             });
         }

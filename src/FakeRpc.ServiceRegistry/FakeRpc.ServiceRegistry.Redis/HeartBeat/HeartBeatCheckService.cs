@@ -59,7 +59,6 @@ namespace FakeRpc.ServiceRegistry.Redis
                 {
                     foreach (var serviceNode in serviceNodes)
                     {
-
                         var flag = IsTcpConnected(serviceNode.ServiceHost, serviceNode.ServicePort);
                         if (!flag)
                         {
