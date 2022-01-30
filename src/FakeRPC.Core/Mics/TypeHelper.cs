@@ -44,6 +44,11 @@ namespace FakeRpc.Core.Mics
             var serviceGroup = type.GetServiceGroup();
             return $"{serviceGroup }.{serviceName}";
         }
+
+        public static bool IsRpcServiceType(this Type type)
+        {
+            return type.IsInterface && type.GetInterfaces().Any(x => x.GetCustomAttribute<FakeRpcAttribute>() != null);
+        }
     }
 
 }

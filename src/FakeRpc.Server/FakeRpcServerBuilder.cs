@@ -7,12 +7,15 @@ using FakeRpc.Core.Mvc;
 using FakeRpc.Core.Mvc.MessagePack;
 using FakeRpc.Core.Mvc.Protobuf;
 using FakeRpc.Core.Registry;
+using FakeRpc.Core.Tcp;
 using MessagePack;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Net.Http.Headers;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -44,7 +47,7 @@ namespace FakeRpc.Server
         {
             var partManager = _services.BuildServiceProvider().GetService<ApplicationPartManager>();
             if (partManager == null)
-                throw new InvalidOperationException("请在AddMvc()方法后调用AddFakeRpc()");
+                throw new InvalidOperationException("请在\"AddMvc()\"方法后调用\"AddFakeRpc()\"");
 
             partManager.FeatureProviders.Add(new FakeRpcFeatureProvider());
 
@@ -100,6 +103,18 @@ namespace FakeRpc.Server
             if (setupAction == null)
                 setupAction = BuildDefaultSwaggerGenAction();
             _services.AddSwaggerGen(setupAction);
+            return this;
+        }
+
+        public FakeRpcServerBuilder UseTcpProtocol(int port)
+        {
+            _services.AddSingleton<FakeRpcConnectionHandler>();
+            _services.AddSingleton<IFakeRpcMessageParser,  FakeRpcMessageParser>();
+            _services.Configure<KestrelServerOptions>(option => option.ListenAnyIP(port, x =>
+            {
+                x.UseConnectionHandler<FakeRpcConnectionHandler>();
+            }));
+
             return this;
         }
 

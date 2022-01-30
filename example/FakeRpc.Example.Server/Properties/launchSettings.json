@@ -15,7 +15,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "FakeRpc.Web": {
+    "FakeRpc.Example.Server": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

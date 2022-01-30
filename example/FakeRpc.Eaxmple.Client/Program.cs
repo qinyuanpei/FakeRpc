@@ -12,6 +12,10 @@ using FakeRpc.Example.Interface;
 using FakeRpc.ServiceDiscovery.Consul;
 using FakeRpc.Core.Discovery;
 using System.Collections.Generic;
+using System.Net.Sockets;
+using FakeRpc.Core.Mics;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace ClientExample
 {
@@ -19,7 +23,31 @@ namespace ClientExample
     {
         static async Task Main(string[] args)
         {
-            BenchmarkRunner.Run<TestContext>();
+            //BenchmarkRunner.Run<TestContext>();
+
+            var tcpClient = new TcpClient();
+            await tcpClient.ConnectAsync("192.168.50.162", 5010);
+
+            var stream = tcpClient.GetStream();
+
+            var request = new FakeRpc.Core.Tcp.FakeRpcRequest();
+            request.Id = Guid.NewGuid().ToString("N");
+            request.ServiceName = typeof(IGreetService).GetServiceName();
+            request.ServiceGroup = typeof(IGreetService).GetServiceGroup();
+            request.MethodName = "SayHello";
+            request.MethodParams =  new KeyValuePair<string, object>[] {
+                new KeyValuePair<string, object>("request", new HelloRequest() { Name = "飞鸿踏雪" })
+            };
+
+            var json = JsonConvert.SerializeObject(request);
+            await stream.WriteAsync(Encoding.UTF8.GetBytes(json));
+            Console.WriteLine("  Request=>\r\n{0}\r\n", json);
+
+            var bytes = new byte[256];
+            await stream.ReadAsync(bytes);
+            json = Encoding.UTF8.GetString(bytes);
+            Console.WriteLine("  Response=>\r\n{0}", json);
+
             Console.ReadKey();
         }
     }
