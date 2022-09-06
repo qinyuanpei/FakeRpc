@@ -37,11 +37,10 @@ namespace FakeRpc.Client.WebSockets
 
         private async Task SendMessage(FakeRpcRequest request, WebSocket webSocket)
         {
-
             var jsonify = JsonConvert.SerializeObject(request);
             var payload = Encoding.UTF8.GetBytes(jsonify);
-            await webSocket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Text, true, CancellationToken.None);
-            _logger.LogInformation("Send RPC request {0}/{1}/{2}:{3}", request.ServiceGroup, request.ServiceName, request.MethodName, jsonify);
+            await webSocket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Binary, true, CancellationToken.None);
+            _logger.LogInformation("Send RPC request {0}/{1}, Parameters:{3}", request.ServiceName, request.MethodName, jsonify);
             OnSend?.Invoke(request);
         }
 
@@ -67,6 +66,7 @@ namespace FakeRpc.Client.WebSockets
 
             var message = Encoding.UTF8.GetString(buffer, 0, receivedLength);
             var response = JsonConvert.DeserializeObject<FakeRpcResponse<dynamic>>(message);
+            _logger.LogInformation("Receive RPC response, Payload:{0}", message);
             OnReceive?.Invoke(response);
         }
     }

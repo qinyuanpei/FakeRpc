@@ -76,11 +76,12 @@ namespace FakeRpc.Server.Middlewares
                         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                         break;
                     case WebSocketMessageType.Text:
-                        var message = Encoding.UTF8.GetString(buffer, 0, receivedLength);
-                        await ProcessTextMessage(webSocket, message);
+                        var tMessage = Encoding.UTF8.GetString(buffer, 0, receivedLength);
+                        await ProcessTextMessage(webSocket, tMessage);
                         break;
                     case WebSocketMessageType.Binary:
-                        await ProcessBinaryMessage(webSocket, new ArraySegment<byte>(buffer, 0, receivedLength));
+                        var bMessage = Encoding.UTF8.GetString(buffer, 0, receivedLength);
+                        await ProcessTextMessage(webSocket, bMessage);
                         break;
                 }
             }

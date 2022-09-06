@@ -69,11 +69,13 @@ namespace FakeRpc.Server.WebSockets
                     var methodParams = JsonConvert.DeserializeObject(jsonfiyParams, parameterType);
                     dynamic ret = serviceMethod.Invoke(serviceInstance, new object[] { methodParams });
                     response.Result = ret.Result;
+                    _logger.LogInformation("Invoke {0}/{1}, Parameters:{2}, Returns:{3}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, jsonfiyParams, JsonConvert.SerializeObject((object)ret.Result));
                 }
                 else
                 {
                     dynamic ret = serviceMethod.Invoke(serviceInstance, null);
                     response.Result = ret.Result;
+                    _logger.LogInformation("Invoke {0}/{1}, Parameters: null, Returns:{2}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, JsonConvert.SerializeObject((object)ret.Result));
                 }
 
                 await SendMessage(response, webSocket);
@@ -86,6 +88,7 @@ namespace FakeRpc.Server.WebSockets
             var jsonify = JsonConvert.SerializeObject(response);
             var payload = Encoding.UTF8.GetBytes(jsonify);
             await webSocket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Text, true, CancellationToken.None);
+  
         }
     }
 }

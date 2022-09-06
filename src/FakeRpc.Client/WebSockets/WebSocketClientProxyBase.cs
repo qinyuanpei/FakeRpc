@@ -20,10 +20,12 @@ namespace FakeRpc.Client.WebSockets
 
         public ISocketRpcBinder SocketRpcBinder { get; set; }
 
-        public Uri Url { get; set; } 
+        public Uri Url { get; set; }
 
         protected override object Invoke(MethodInfo targetMethod, object[] args)
         {
+            while (WebSocket.State == WebSocketState.Connecting) { Task.Delay(1); }
+
             while (WebSocket.State == WebSocketState.Closed)
             {
                 (WebSocket as ClientWebSocket).ConnectAsync(Url, CancellationToken.None);
@@ -40,6 +42,7 @@ namespace FakeRpc.Client.WebSockets
 
             SocketRpcBinder.OnReceive += response =>
             {
+                if (response.Id != request.Id) return;
                 var jsonify = JsonConvert.SerializeObject(response.Result);
                 result = JsonConvert.DeserializeObject(jsonify, returnType);
             };

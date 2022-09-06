@@ -19,6 +19,7 @@ using System.Text;
 using Newtonsoft.Json;
 using FakeRpc.Client.WebSockets;
 using FakeRpc.Core.WebSockets;
+using Microsoft.Extensions.Logging;
 
 namespace ClientExample
 {
@@ -26,15 +27,7 @@ namespace ClientExample
     {
         static async Task Main(string[] args)
         {
-            var serviceProvider = new TestContext().InitIoc();
-            var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
-            var greetProxy = _clientFactory.CreateSocketClient<IGreetService>("ws://localhost:5000");
-            var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
-            reply = await greetProxy.SayWho();
-            var calculatorProxy = _clientFactory.CreateSocketClient<ICalculatorService>("ws://localhost:5000");
-            var result = calculatorProxy.Random();
-
-            //BenchmarkRunner.Run<TestContext>();
+            BenchmarkRunner.Run<TestContext>();
             //var socket = new ClientWebSocket();
             //await socket.ConnectAsync(new Uri("ws://localhost:5000"), CancellationToken.None);
 
@@ -84,8 +77,7 @@ namespace ClientExample
     }
 
     [MemoryDiagnoser]
-    [SimpleJob(RuntimeMoniker.NetCoreApp31)]
-    [SimpleJob(RuntimeMoniker.Net50)]
+    [SimpleJob(RuntimeMoniker.Net60)]
     [RPlotExporter]
     public class TestContext
     {
@@ -93,7 +85,7 @@ namespace ClientExample
         {
             var services = new ServiceCollection();
 
-            services.AddLogging();
+            //services.AddLogging(option => option.AddConsole());
             services.AddTransient<ISocketRpcBinder, ClientRpcBinder>();
 
             var builder = new FakeRpcClientBuilder(services);
