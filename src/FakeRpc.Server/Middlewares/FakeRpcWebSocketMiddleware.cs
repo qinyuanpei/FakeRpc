@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using FakeRpc.Core;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,28 +10,31 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
+using FakeRpc.Core.Mics;
+using Newtonsoft.Json;
+using FakeRpc.Core.WebSockets;
 
-namespace FakeRpc.Core.Middlewares
+namespace FakeRpc.Server.Middlewares
 {
     public class FakeRpcWebSocketMiddleware
     {
         private readonly RequestDelegate _next;
 
-        private readonly IServiceProvider _serviceProvider;
+        private readonly ISocketRpcBinder _socketRpcBinder;
 
-        private const int MAX_BUFFER_SIZE = 64 * 2014;
+        private const int MAX_BUFFER_SIZE = 64 * 1024;
 
         private const string MESSAGE_TOO_BIG = "The message exceeds the maximum allowed message size: {0} of allowed {1} bytes.";
 
         private readonly ILogger<FakeRpcWebSocketMiddleware> _logger;
 
-        public FakeRpcWebSocketMiddleware(RequestDelegate next, IServiceProvider serviceProvider, ILogger<FakeRpcWebSocketMiddleware> logger)
+        public FakeRpcWebSocketMiddleware(RequestDelegate next, ISocketRpcBinder socketRpcBinder, ILogger<FakeRpcWebSocketMiddleware> logger)
         {
             _next = next;
-            _serviceProvider = serviceProvider;
             _logger = logger;
+            _socketRpcBinder = socketRpcBinder;
         }
-
 
         public async Task InvokeAsync(HttpContext context)
         {
@@ -38,7 +44,7 @@ namespace FakeRpc.Core.Middlewares
                 return;
             }
 
-            using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+            var webSocket = await context.WebSockets.AcceptWebSocketAsync();
             await HandleWebSocket(webSocket);
         }
 
@@ -64,32 +70,31 @@ namespace FakeRpc.Core.Middlewares
                 }
                 while (receiveResult?.EndOfMessage == false);
 
-                switch(receiveResult.MessageType)
+                switch (receiveResult.MessageType)
                 {
                     case WebSocketMessageType.Close:
                         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                         break;
                     case WebSocketMessageType.Text:
                         var message = Encoding.UTF8.GetString(buffer, 0, receivedLength);
-                        await ProcessTextMessage(message);
+                        await ProcessTextMessage(webSocket, message);
                         break;
                     case WebSocketMessageType.Binary:
-                        await ProcessBinaryMessage(new ArraySegment<byte>(buffer, 0, receivedLength));
+                        await ProcessBinaryMessage(webSocket, new ArraySegment<byte>(buffer, 0, receivedLength));
                         break;
                 }
             }
         }
 
-        private async Task ProcessTextMessage(string message)
+        private async Task ProcessTextMessage(WebSocket webSocket, string message)
+        {
+            var request = FakeRpcRequest.Parse(message);
+            await _socketRpcBinder.Invoke(request, webSocket);
+        }
+
+        private async Task ProcessBinaryMessage(WebSocket webSocket, ArraySegment<byte> message)
         {
             await Task.CompletedTask;
         }
-
-        private async Task ProcessBinaryMessage(ArraySegment<byte> message)
-        {
-            await Task.CompletedTask;
-        }
-
-
     }
 }

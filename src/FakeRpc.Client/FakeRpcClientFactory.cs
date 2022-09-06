@@ -1,14 +1,18 @@
-﻿using FakeRpc.Core;
+﻿using FakeRpc.Client.WebSockets;
+using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
 using FakeRpc.Core.Mics;
+using FakeRpc.Core.WebSockets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace FakeRpc.Client
 {
@@ -65,6 +69,19 @@ namespace FakeRpc.Client
             return Create<TClient>(baseUri, rpcCallsFactory);
         }
 
+        public TClient CreateSocketClient<TClient>(string baseUrl)
+        {
+            var clientProxy = DispatchProxy.Create<TClient, WebSocketClientProxyBase>();
+            (clientProxy as WebSocketClientProxyBase).WebSocket = new ClientWebSocket();
+            (clientProxy as WebSocketClientProxyBase).ServiceType = typeof(TClient);
+            (clientProxy as WebSocketClientProxyBase).SocketRpcBinder = _serviceProvider.GetService<ISocketRpcBinder>();
+            (clientProxy as WebSocketClientProxyBase).Url = new Uri(baseUrl);
+
+            ((clientProxy as WebSocketClientProxyBase).WebSocket as ClientWebSocket).ConnectAsync(new Uri(baseUrl), CancellationToken.None);
+
+            return clientProxy;
+        }
+
         public TClient Discover<TClient>()
         {
             var serviceDiscovery = _serviceProvider.GetService<IServiceDiscovery>();
@@ -93,9 +110,9 @@ namespace FakeRpc.Client
         private static Dictionary<string, Func<HttpClient, IFakeRpcCalls>> _rpcCallsMapping =
             new Dictionary<string, Func<HttpClient, IFakeRpcCalls>>()
             {
-                { FakeRpcMediaTypes.Default,DefaultFakeRpcCalls.Factory },
-                { FakeRpcMediaTypes.MessagePack,MessagePackRpcCalls.Factory},
-                { FakeRpcMediaTypes.Protobuf, ProtobufRpcCalls.Factory }
+                { FakeRpcMediaTypes.Default, DefaultFakeRpcCalls.Factory },
+                { FakeRpcMediaTypes.MessagePack, MessagePackRpcCalls.Factory},
+                { FakeRpcMediaTypes.Protobuf,  ProtobufRpcCalls.Factory }
             };
     }
 }

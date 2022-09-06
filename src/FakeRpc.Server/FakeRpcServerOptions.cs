@@ -22,21 +22,28 @@ namespace FakeRpc.Server
         /// <summary>
         /// Registered Services
         /// </summary>
-        public IEnumerable<Type> ServiceTypes => ResolveServiceTypes();
+        public IEnumerable<FakeRpcServiceDescriptor> ServiceDescriptors => ResolveServiceDescriptors();
 
         /// <summary>
         /// Registered Assembies
         /// </summary>
         public IList<Assembly> ExternalAssemblies { get; set; } = new List<Assembly>();
 
-        private IEnumerable<Type> ResolveServiceTypes()
+        private IEnumerable<FakeRpcServiceDescriptor> ResolveServiceDescriptors()
         {
             var entryAssembly = Assembly.GetEntryAssembly();
-            var referencedAssemblies = entryAssembly.GetReferencedAssemblies().Select(x => Assembly.Load(x));
-            var assemblies = new List<Assembly> { entryAssembly }.Concat(referencedAssemblies).Concat(ExternalAssemblies);
-            var serviceTypes = assemblies.SelectMany(x => x.DefinedTypes).Select(x => x.AsType()).Distinct();
-            serviceTypes = serviceTypes.Where(x => x.IsInterface && x.GetCustomAttribute<FakeRpcAttribute>() != null);
-            return serviceTypes;
+            var referedAssemblies = entryAssembly.GetReferencedAssemblies().Select(x => Assembly.Load(x));
+            var mergedAssemblies = new List<Assembly> { entryAssembly }.Concat(referedAssemblies).Concat(ExternalAssemblies);
+
+            var definedTypes = mergedAssemblies.SelectMany(x => x.DefinedTypes).Select(x => x.AsType()).Distinct();
+            var serviceTypes = definedTypes.Where(x => x.IsInterface && x.GetCustomAttribute<FakeRpcAttribute>() != null);
+
+            foreach (var serviceType in serviceTypes)
+            {
+                var implType = definedTypes.FirstOrDefault(x => serviceType.IsAssignableFrom(x));
+                if (implType != null)
+                    yield return new FakeRpcServiceDescriptor() { ServiceType = serviceType, ImplementationType = implType };
+            }
         }
     }
 }

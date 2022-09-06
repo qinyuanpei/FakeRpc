@@ -9,6 +9,7 @@ using FakeRpc.Core.Mvc;
 using FakeRpc.Core;
 using FakeRpc.Core.Mics;
 using Microsoft.Extensions.Options;
+using FakeRpc.Server.Middlewares;
 
 namespace FakeRpc.Server
 {
@@ -27,6 +28,15 @@ namespace FakeRpc.Server
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "FakeRpc Services v1"));
             }
+
+            // WebSockets
+            var webSocketOptions = new WebSocketOptions
+            {
+                KeepAliveInterval = TimeSpan.FromMinutes(2)
+            };
+
+            app.UseWebSockets(webSocketOptions);
+            app.UseMiddleware<FakeRpcWebSocketMiddleware>();
         }
 
         private static void RegisterServices(IServiceProvider serviceProvider)
@@ -38,14 +48,14 @@ namespace FakeRpc.Server
                 var protocolsProvider = scope.ServiceProvider.GetService<FakeRpcProtocolsProvider>();
                 if (serviceRegistry != null)
                 {
-                    foreach (var serviceType in options.Value.ServiceTypes)
+                    foreach (var serviceDescriptor in options.Value.ServiceDescriptors)
                     {
                         serviceRegistry.Register(new ServiceRegistration()
                         {
                             ServiceUri = new Uri("http://192.168.6.24:5800"),
-                            ServiceName = serviceType.GetServiceName(),
-                            ServiceGroup = serviceType.GetServiceGroup(),
-                            ServiceInterface = serviceType.FullName,
+                            ServiceName = serviceDescriptor.ServiceType.GetServiceName(),
+                            ServiceGroup = serviceDescriptor.ServiceType.GetServiceGroup(),
+                            ServiceInterface = serviceDescriptor.ServiceType.FullName,
                             ServiceProtocols = string.Join(",", protocolsProvider.GetProtocols())
                         });
                     }
@@ -62,14 +72,14 @@ namespace FakeRpc.Server
                 var protocolsProvider = scope.ServiceProvider.GetService<FakeRpcProtocolsProvider>();
                 if (serviceRegistry != null)
                 {
-                    foreach (var serviceType in options.Value.ServiceTypes)
+                    foreach (var serviceDescriptor in options.Value.ServiceDescriptors)
                     {
                         serviceRegistry.Unregister(new ServiceRegistration()
                         {
                             ServiceUri = new Uri("http://192.168.6.24:5800"),
-                            ServiceName = serviceType.GetServiceName(),
-                            ServiceGroup = serviceType.GetServiceGroup(),
-                            ServiceInterface = serviceType.FullName,
+                            ServiceName = serviceDescriptor.ServiceType.GetServiceName(),
+                            ServiceGroup = serviceDescriptor.ServiceType.GetServiceGroup(),
+                            ServiceInterface = serviceDescriptor.ServiceType.FullName,
                             ServiceProtocols = string.Join(",", protocolsProvider.GetProtocols())
                         });
                     }

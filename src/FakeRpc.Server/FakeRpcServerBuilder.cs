@@ -7,8 +7,12 @@ using FakeRpc.Core.Mvc;
 using FakeRpc.Core.Mvc.MessagePack;
 using FakeRpc.Core.Mvc.Protobuf;
 using FakeRpc.Core.Registry;
+using FakeRpc.Core.WebSockets;
+using FakeRpc.Server.Middlewares;
+using FakeRpc.Server.WebSockets;
 using MessagePack;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -52,6 +56,8 @@ namespace FakeRpc.Server
             _services.Configure<MvcOptions>(o => o.Conventions.Add(new FakeRpcModelConvention()));
 
             _services.AddTransient<FakeRpcProtocolsProvider>();
+
+            _services.AddTransient<ISocketRpcBinder, ServerRpcBinder>();
 
             return this;
         }
@@ -127,6 +133,9 @@ namespace FakeRpc.Server
         public void Build()
         {
             ConfigAssemblyParts();
+
+            ConfigRpcServices();
+
             _services.Configure<FakeRpcServerOptions>(x => x = _options);
         }
 
@@ -163,6 +172,15 @@ namespace FakeRpc.Server
                 foreach (var assembly in _options.ExternalAssemblies)
                     apm.ApplicationParts.Add(new AssemblyPart(assembly));
             });
+        }
+
+        private void ConfigRpcServices()
+        {
+            var serviceDescriptors = _options.ServiceDescriptors;
+            foreach (var serviceDescriptor in serviceDescriptors)
+            {
+                _services.AddTransient(serviceDescriptor.ServiceType, serviceDescriptor.ImplementationType);
+            }
         }
     }
 }

@@ -12,6 +12,13 @@ using FakeRpc.Example.Interface;
 using FakeRpc.ServiceDiscovery.Consul;
 using FakeRpc.Core.Discovery;
 using System.Collections.Generic;
+using System.Net.WebSockets;
+using System.Threading;
+using FakeRpc.Core.Mics;
+using System.Text;
+using Newtonsoft.Json;
+using FakeRpc.Client.WebSockets;
+using FakeRpc.Core.WebSockets;
 
 namespace ClientExample
 {
@@ -19,7 +26,59 @@ namespace ClientExample
     {
         static async Task Main(string[] args)
         {
-            BenchmarkRunner.Run<TestContext>();
+            var serviceProvider = new TestContext().InitIoc();
+            var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
+            var greetProxy = _clientFactory.CreateSocketClient<IGreetService>("ws://localhost:5000");
+            var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
+            reply = await greetProxy.SayWho();
+            var calculatorProxy = _clientFactory.CreateSocketClient<ICalculatorService>("ws://localhost:5000");
+            var result = calculatorProxy.Random();
+
+            //BenchmarkRunner.Run<TestContext>();
+            //var socket = new ClientWebSocket();
+            //await socket.ConnectAsync(new Uri("ws://localhost:5000"), CancellationToken.None);
+
+            //var serviceProvider = new TestContext().InitIoc();
+            //var clientRpcBinder = serviceProvider.GetService<ISocketRpcBinder>();
+            //clientRpcBinder.OnSend += req => Console.WriteLine("Sent: {0}", JsonConvert.SerializeObject(req));
+            //clientRpcBinder.OnReceive += res => Console.WriteLine("Received: {0}", JsonConvert.SerializeObject(res));
+
+            //var i = 0;
+            //while (i < 10)
+            //{
+            //    // SayHello
+            //    var request = new FakeRpcRequest()
+            //    {
+            //        Id = Guid.NewGuid().ToString("N"),
+            //        ServiceGroup = typeof(IGreetService).GetServiceGroup(),
+            //        ServiceName = typeof(IGreetService).GetServiceName(),
+            //        MethodName = "SayHello",
+            //        MethodParams = new KeyValuePair<string, object>[]
+            //        {
+            //            new KeyValuePair<string, object>("request", new HelloRequest(){ Name = "飞鸿踏雪" })
+            //        }
+            //    };
+            //    await Task.Delay(1000);
+            //    await clientRpcBinder.Invoke(request, socket);
+
+            //    // Calculate
+            //    var random = new Random();
+            //    request = new FakeRpcRequest()
+            //    {
+            //        Id = Guid.NewGuid().ToString("N"),
+            //        ServiceGroup = typeof(ICalculatorService).GetServiceGroup(),
+            //        ServiceName = typeof(ICalculatorService).GetServiceName(),
+            //        MethodName = "Calculate",
+            //        MethodParams = new KeyValuePair<string, object>[]
+            //        {
+            //            new KeyValuePair<string, object>("request", new CalculatorRequest{ Op = "+", Num1 = random.Next(0, 100), Num2 = random.Next(0, 100) })
+            //        }
+            //    };
+            //    await Task.Delay(1000);
+            //    await clientRpcBinder.Invoke(request, socket);
+            //    i++;
+            //}
+
             Console.ReadKey();
         }
     }
@@ -33,6 +92,9 @@ namespace ClientExample
         public IServiceProvider InitIoc()
         {
             var services = new ServiceCollection();
+
+            services.AddLogging();
+            services.AddTransient<ISocketRpcBinder, ClientRpcBinder>();
 
             var builder = new FakeRpcClientBuilder(services);
 
@@ -91,6 +153,18 @@ namespace ClientExample
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
             var calculatorProxy = _clientFactory.Create<ICalculatorService>(DefaultFakeRpcCalls.Factory);
+            var result = calculatorProxy.Random();
+        }
+
+        [Benchmark(Baseline = false, Description = "Test FakeRpc with JSON & WebSocket", OperationsPerInvoke = 1)]
+        public async Task RunWebSocket()
+        {
+            var serviceProvider = InitIoc();
+            var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
+            var greetProxy = _clientFactory.CreateSocketClient<IGreetService>("ws://localhost:5000");
+            var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
+            reply = await greetProxy.SayWho();
+            var calculatorProxy = _clientFactory.CreateSocketClient<ICalculatorService>("ws://localhost:5000");
             var result = calculatorProxy.Random();
         }
     }
