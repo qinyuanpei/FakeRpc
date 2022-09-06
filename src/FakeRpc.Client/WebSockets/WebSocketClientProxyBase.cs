@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace FakeRpc.Client.WebSockets
 {
-    public class WebSocketClientProxyBase : DispatchProxy
+    public class WebSocketClientProxyBase : DispatchProxy,IDisposable
     {
         public Type ServiceType { get; set; }
 
@@ -66,6 +66,12 @@ namespace FakeRpc.Client.WebSockets
             SocketRpcBinder?.Invoke(request, WebSocket);
             while (result == null) { Thread.Sleep(1000); }
             return Task.FromResult(result);
+        }
+
+        public void Dispose()
+        {
+            WebSocket?.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+            WebSocket?.Dispose();
         }
     }
 }
