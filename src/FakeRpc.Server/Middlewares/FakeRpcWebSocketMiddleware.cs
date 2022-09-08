@@ -13,7 +13,8 @@ using System.Threading.Tasks;
 using System.Linq;
 using FakeRpc.Core.Mics;
 using Newtonsoft.Json;
-using FakeRpc.Core.WebSockets;
+using FakeRpc.Core.Serialize;
+using FakeRpc.Core.Invokers.WebSockets;
 
 namespace FakeRpc.Server.Middlewares
 {
@@ -21,19 +22,15 @@ namespace FakeRpc.Server.Middlewares
     {
         private readonly RequestDelegate _next;
 
-        private readonly ISocketRpcBinder _socketRpcBinder;
-
-        private const int MAX_BUFFER_SIZE = 64 * 1024;
-
-        private const string MESSAGE_TOO_BIG = "The message exceeds the maximum allowed message size: {0} of allowed {1} bytes.";
+        private readonly IWebSocketCallInvoker _callInvoker;
 
         private readonly ILogger<FakeRpcWebSocketMiddleware> _logger;
 
-        public FakeRpcWebSocketMiddleware(RequestDelegate next, ISocketRpcBinder socketRpcBinder, ILogger<FakeRpcWebSocketMiddleware> logger)
+        public FakeRpcWebSocketMiddleware(RequestDelegate next, IWebSocketCallInvoker callInvoker, ILogger<FakeRpcWebSocketMiddleware> logger)
         {
             _next = next;
             _logger = logger;
-            _socketRpcBinder = socketRpcBinder;
+            _callInvoker = callInvoker;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -44,25 +41,33 @@ namespace FakeRpc.Server.Middlewares
                 return;
             }
 
+            var connectionId = context.Connection.Id;
+            var contentType = context.Request.Query["Content-Type"][0] ?? FakeRpcMediaTypes.Default;
+            var serializationHandler = MessageSerializerFactory.Create(contentType);
+
             var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-            await HandleWebSocket(webSocket);
+
+            _logger.LogInformation("Handle WebSocket Connection, ConnectionId: {0}, Content-Type: {1}...", connectionId, contentType);
+
+            await HandleWebSocket(webSocket, serializationHandler);
+
         }
 
-        private async Task HandleWebSocket(WebSocket webSocket)
+        private async Task HandleWebSocket(WebSocket webSocket, IMessageSerializer serializationHandler)
         {
             while (webSocket.State == WebSocketState.Open)
             {
                 var receivedLength = 0;
-                byte[] buffer = new byte[MAX_BUFFER_SIZE];
+                byte[] buffer = new byte[Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE];
                 WebSocketReceiveResult receiveResult = null;
 
                 do
                 {
                     receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
                     receivedLength += receiveResult.Count;
-                    if (receivedLength >= MAX_BUFFER_SIZE)
+                    if (receivedLength >= Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE)
                     {
-                        var statusDescription = string.Format(MESSAGE_TOO_BIG, receivedLength, MAX_BUFFER_SIZE);
+                        var statusDescription = string.Format(Constants.FAKE_RPC_WEBSOCKET_MESSAGE_TOO_BIG, receivedLength, Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE);
                         await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, statusDescription, CancellationToken.None);
                         break;
                     }
@@ -75,27 +80,15 @@ namespace FakeRpc.Server.Middlewares
                     case WebSocketMessageType.Close:
                         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                         break;
-                    case WebSocketMessageType.Text:
-                        var tMessage = Encoding.UTF8.GetString(buffer, 0, receivedLength);
-                        await ProcessTextMessage(webSocket, tMessage);
-                        break;
                     case WebSocketMessageType.Binary:
-                        var bMessage = Encoding.UTF8.GetString(buffer, 0, receivedLength);
-                        await ProcessTextMessage(webSocket, bMessage);
+                        // Protobuf 要求 byte[] 末尾不能有垃圾
+                        var bytes = new byte[receivedLength];
+                        Array.Copy(buffer, bytes, receivedLength);
+                        var request = await serializationHandler.DeserializeAsync<FakeRpcRequest>(bytes);
+                        await _callInvoker.Invoke(request, webSocket, serializationHandler);
                         break;
                 }
             }
-        }
-
-        private async Task ProcessTextMessage(WebSocket webSocket, string message)
-        {
-            var request = FakeRpcRequest.Parse(message);
-            await _socketRpcBinder.Invoke(request, webSocket);
-        }
-
-        private async Task ProcessBinaryMessage(WebSocket webSocket, ArraySegment<byte> message)
-        {
-            await Task.CompletedTask;
         }
     }
 }

@@ -30,15 +30,6 @@ namespace FakeRpc.Client
             return this;
         }
 
-        public FakeRpcClientBuilder AddRpcCallsFactory(Func<HttpClient, IFakeRpcCalls> factory = null)
-        {
-            if (factory == null)
-                factory = httpClient => new DefaultFakeRpcCalls(httpClient);
-
-            _services.AddSingleton(factory);
-            return this;
-        }
-
         public FakeRpcClientBuilder EnableServiceDiscovery<TServiceDiscovery>(Func<IServiceProvider, TServiceDiscovery> serviceDiscoveryFactory = null) where TServiceDiscovery : class, IServiceDiscovery
         {
             if (serviceDiscoveryFactory != null)

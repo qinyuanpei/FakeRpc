@@ -1,9 +1,11 @@
-﻿using FakeRpc.Client.WebSockets;
-using FakeRpc.Core;
+﻿using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
+using FakeRpc.Core.Invokers.Http;
+using FakeRpc.Core.Invokers.WebSockets;
 using FakeRpc.Core.Mics;
-using FakeRpc.Core.WebSockets;
+using FakeRpc.Core.Serialize;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
 using System;
@@ -20,99 +22,78 @@ namespace FakeRpc.Client
     {
         private readonly IServiceProvider _serviceProvider;
 
+        private readonly ILoggerFactory _loggerFactory;
+
         public FakeRpcClientFactory(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
+            _loggerFactory = _serviceProvider.GetService<ILoggerFactory>();
         }
 
-        public FakeRpcClientFactory()
+        public TClient Create<TClient>(Uri baseUri, FakeRpcTransportProtocols transportProtocols = FakeRpcTransportProtocols.Http, string contentType = FakeRpcMediaTypes.Default)
         {
-            _serviceProvider = new ServiceCollection().BuildServiceProvider();
+            switch (transportProtocols)
+            {
+                case FakeRpcTransportProtocols.Http:
+                    return CreateHttpClient<TClient>(baseUri, contentType);
+                case FakeRpcTransportProtocols.WebSocket:
+                    return CreateWebSocketClient<TClient>(baseUri, contentType);
+                case FakeRpcTransportProtocols.Tcp:
+                    break;
+            }
+
+            throw new ArgumentException($"The specified transport protocol {Enum.GetName(typeof(FakeRpcTransportProtocols), transportProtocols)} does not support.");
         }
 
-        public TClient Create<TClient>(Func<HttpClient, IFakeRpcCalls> rpcCallsFactory = null)
-        {
-            var httpClientFactory = _serviceProvider.GetService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient(typeof(TClient).GetClientName());
-            if (rpcCallsFactory == null)
-                rpcCallsFactory = _serviceProvider.GetService<Func<HttpClient, IFakeRpcCalls>>();
-
-            var clientProxy = DispatchProxy.Create<TClient, ClientProxyBase>();
-            (clientProxy as ClientProxyBase).HttpClient = httpClient;
-            (clientProxy as ClientProxyBase).ServiceType = typeof(TClient);
-            (clientProxy as ClientProxyBase).RpcCalls = rpcCallsFactory == null ?
-                new DefaultFakeRpcCalls(httpClient) : rpcCallsFactory(httpClient);
-
-            return clientProxy;
-        }
-
-        public TClient Create<TClient>(Uri baseUri, Func<HttpClient, IFakeRpcCalls> rpcCallsFactory = null)
-        {
-            var httpClientFactory = _serviceProvider.GetService<IHttpClientFactory>();
-            var clientProxy = DispatchProxy.Create<TClient, ClientProxyBase>();
-            var httpClient = httpClientFactory.CreateClient();
-            httpClient.BaseAddress = baseUri;
-            if (rpcCallsFactory == null)
-                rpcCallsFactory = _serviceProvider.GetService<Func<HttpClient, IFakeRpcCalls>>();
-
-            (clientProxy as ClientProxyBase).HttpClient = httpClient;
-            (clientProxy as ClientProxyBase).ServiceType = typeof(TClient);
-            (clientProxy as ClientProxyBase).RpcCalls = rpcCallsFactory == null ?
-                new DefaultFakeRpcCalls(httpClient) : rpcCallsFactory(httpClient);
-
-            return clientProxy;
-        }
-
-        public TClient Create<TClient>(string baseUrl, Func<HttpClient, IFakeRpcCalls> rpcCallsFactory = null)
-        {
-            var baseUri = new Uri(baseUrl);
-            return Create<TClient>(baseUri, rpcCallsFactory);
-        }
-
-        public TClient CreateSocketClient<TClient>(string baseUrl)
-        {
-            var clientProxy = DispatchProxy.Create<TClient, WebSocketClientProxyBase>();
-            (clientProxy as WebSocketClientProxyBase).WebSocket = new ClientWebSocket();
-            (clientProxy as WebSocketClientProxyBase).ServiceType = typeof(TClient);
-            (clientProxy as WebSocketClientProxyBase).SocketRpcBinder = _serviceProvider.GetService<ISocketRpcBinder>();
-            (clientProxy as WebSocketClientProxyBase).Url = new Uri(baseUrl);
-
-            ((clientProxy as WebSocketClientProxyBase).WebSocket as ClientWebSocket).ConnectAsync(new Uri(baseUrl), CancellationToken.None);
-
-            return clientProxy;
-        }
-
-        public TClient Discover<TClient>()
+        public TClient Discover<TClient>(FakeRpcTransportProtocols transportProtocols = FakeRpcTransportProtocols.Http, string contentType = FakeRpcMediaTypes.Default)
         {
             var serviceDiscovery = _serviceProvider.GetService<IServiceDiscovery>();
             var serviceRegistration = serviceDiscovery.GetService<TClient>();
             if (serviceRegistration == null)
                 throw new Exception($"Service {typeof(TClient).FullName} is not registered or not healthy");
 
-            var clientProxy = DispatchProxy.Create<TClient, ClientProxyBase>();
+            return Create<TClient>(serviceRegistration.ServiceUri, transportProtocols, contentType);
+        }
+
+        private TClient CreateHttpClient<TClient>(Uri baseUri, string contentType = FakeRpcMediaTypes.Default)
+        {
             var httpClientFactory = _serviceProvider.GetService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient();
-            httpClient.BaseAddress = serviceRegistration.ServiceUri;
+            httpClient.BaseAddress = baseUri;
 
-            if (string.IsNullOrEmpty(serviceRegistration.ServiceProtocols))
-                throw new Exception($"Service {typeof(TClient).FullName} doesn't have protocols infomation");
+            var serializer = MessageSerializerFactory.Create(contentType);
 
-            var protocols = serviceRegistration.ServiceProtocols.Split(new char[] { ',' });
-            var rpcCallFactory = _rpcCallsMapping[protocols[0]];
-
-            (clientProxy as ClientProxyBase).HttpClient = httpClient;
-            (clientProxy as ClientProxyBase).ServiceType = typeof(TClient);
-            (clientProxy as ClientProxyBase).RpcCalls = rpcCallFactory(httpClient);
+            var clientProxy = DispatchProxy.Create<TClient, HttpClientProxy<TClient>>();
+            (clientProxy as HttpClientProxy<TClient>).HttpClient = httpClient;
+            (clientProxy as HttpClientProxy<TClient>).CallInvoker = new HttpCallInvoker(httpClient, serializer);
 
             return clientProxy;
         }
 
-        private static Dictionary<string, Func<HttpClient, IFakeRpcCalls>> _rpcCallsMapping =
-            new Dictionary<string, Func<HttpClient, IFakeRpcCalls>>()
-            {
-                { FakeRpcMediaTypes.Default, DefaultFakeRpcCalls.Factory },
-                { FakeRpcMediaTypes.MessagePack, MessagePackRpcCalls.Factory},
-                { FakeRpcMediaTypes.Protobuf,  ProtobufRpcCalls.Factory }
-            };
+        private TClient CreateHttpClient<TClient>(string baseUrl, string contentType = FakeRpcMediaTypes.Default)
+        {
+            var baseUri = new Uri(baseUrl);
+            return CreateHttpClient<TClient>(baseUri, contentType);
+        }
+
+        private TClient CreateWebSocketClient<TClient>(Uri baseUrl, string contentType = FakeRpcMediaTypes.Default)
+        {
+            var formatedUrl = baseUrl.AbsoluteUri.Contains("?") ? new Uri($"{baseUrl.AbsoluteUri}&Content-Type={contentType}") :
+                new Uri($"{baseUrl.AbsoluteUri}?Content-Type={contentType}");
+
+            var clientProxy = DispatchProxy.Create<TClient, WebSocketClientProxy<TClient>>();
+            (clientProxy as WebSocketClientProxy<TClient>).WebSocket = new ClientWebSocket();
+            (clientProxy as WebSocketClientProxy<TClient>).CallInvoker = _serviceProvider.GetService<IWebSocketCallInvoker>();
+            (clientProxy as WebSocketClientProxy<TClient>).Uri = formatedUrl;
+
+            ((clientProxy as WebSocketClientProxy<TClient>).WebSocket as ClientWebSocket).ConnectAsync(formatedUrl, CancellationToken.None);
+
+            return clientProxy;
+        }
+
+        private TClient CreateWebSocketClient<TClient>(string baseUrl, string contentType = FakeRpcMediaTypes.Default)
+        {
+            return CreateWebSocketClient<TClient>(new Uri(baseUrl), contentType);
+        }
     }
 }

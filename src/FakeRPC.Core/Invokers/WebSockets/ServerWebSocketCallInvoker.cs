@@ -1,39 +1,38 @@
-﻿using FakeRpc.Core;
-using FakeRpc.Core.Mics;
-using FakeRpc.Core.WebSockets;
-using Microsoft.Extensions.DependencyInjection;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+using System.Net.WebSockets;
+using FakeRpc.Core.Serialize;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
+using FakeRpc.Core.Mics;
 using System.Linq;
-using System.Net.WebSockets;
-using System.Text;
+using Newtonsoft.Json;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace FakeRpc.Server.WebSockets
+namespace FakeRpc.Core.Invokers.WebSockets
 {
-    public class ServerRpcBinder : ISocketRpcBinder
+    public class ServerWebSocketCallInvoker : IWebSocketCallInvoker
     {
+
         private readonly IServiceProvider _serviceProvider;
 
-        private readonly ILogger<ServerRpcBinder> _logger;
+        private readonly ILogger<ServerWebSocketCallInvoker> _logger;
 
-        public Action<FakeRpcRequest> OnSend { get; set; }
-
-        public Action<FakeRpcResponse<dynamic>> OnReceive { get; set; }
-
-        public ServerRpcBinder(IServiceProvider serviceProvider, ILogger<ServerRpcBinder> logger)
+        public ServerWebSocketCallInvoker(IServiceProvider serviceProvider, ILogger<ServerWebSocketCallInvoker> logger)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
         }
 
-        public async Task Invoke(FakeRpcRequest request, WebSocket webSocket)
+        public Action<FakeRpcRequest> OnSend { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public Action<FakeRpcResponse> OnReceive { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public async Task Invoke(FakeRpcRequest request, WebSocket webSocket, IMessageSerializer serializationHandler)
         {
-            var response = new FakeRpcResponse<dynamic>() { Id = request.Id };
+            var response = new FakeRpcResponse() { Id = request.Id };
 
             using (var scope = _serviceProvider.CreateScope())
             {
@@ -45,7 +44,7 @@ namespace FakeRpc.Server.WebSockets
                 {
                     response.Error = $"Please make sure the service \"{request.ServiceGroup}.{request.ServiceName}\" is registered.";
                     _logger.LogError(response.Error);
-                    await SendMessage(response, webSocket);
+                    await SendMessage(response, webSocket, serializationHandler);
                     return;
                 }
 
@@ -57,7 +56,7 @@ namespace FakeRpc.Server.WebSockets
                 {
                     response.Error = $"Please make sure the method \"{request.MethodName}\" is defined in the service \"{request.ServiceGroup}.{request.ServiceName}\".";
                     _logger.LogError(response.Error);
-                    await SendMessage(response, webSocket);
+                    await SendMessage(response, webSocket, serializationHandler);
                     return;
                 }
 
@@ -65,30 +64,30 @@ namespace FakeRpc.Server.WebSockets
                 if (serviceMethod.GetParameters().Length > 0)
                 {
                     var parameterType = serviceMethod.GetParameters()[0].ParameterType;
-                    var jsonfiyParams = JsonConvert.SerializeObject(request.MethodParams[0].Value);
+                    var keyValueParams = JsonConvert.DeserializeObject<KeyValuePair<string, object>[]>(request.MethodParams);
+                    var jsonfiyParams = JsonConvert.SerializeObject(keyValueParams[0].Value);
                     var methodParams = JsonConvert.DeserializeObject(jsonfiyParams, parameterType);
                     dynamic ret = serviceMethod.Invoke(serviceInstance, new object[] { methodParams });
-                    response.Result = ret.Result;
+                    response.SetResult(ret.Result);
                     _logger.LogInformation("Invoke {0}/{1}, Parameters:{2}, Returns:{3}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, jsonfiyParams, JsonConvert.SerializeObject((object)ret.Result));
                 }
                 else
                 {
                     dynamic ret = serviceMethod.Invoke(serviceInstance, null);
-                    response.Result = ret.Result;
+                    response.SetResult(ret.Result);
                     _logger.LogInformation("Invoke {0}/{1}, Parameters: null, Returns:{2}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, JsonConvert.SerializeObject((object)ret.Result));
                 }
 
-                await SendMessage(response, webSocket);
+                await SendMessage(response, webSocket, serializationHandler);
             }
 
         }
 
-        private async Task SendMessage(FakeRpcResponse<dynamic> response, WebSocket webSocket)
+        private async Task SendMessage(FakeRpcResponse response, WebSocket webSocket, IMessageSerializer serializationHandler)
         {
-            var jsonify = JsonConvert.SerializeObject(response);
-            var payload = Encoding.UTF8.GetBytes(jsonify);
-            await webSocket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Text, true, CancellationToken.None);
-  
+            var payload = serializationHandler.Serialize(response);
+            await webSocket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Binary, true, CancellationToken.None);
+
         }
     }
 }

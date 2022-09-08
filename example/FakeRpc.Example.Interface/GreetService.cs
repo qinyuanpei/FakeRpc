@@ -27,7 +27,6 @@ namespace FakeRpc.Example.Interface
         /// <returns></returns>
         public Task<HelloReply> SayHello(HelloRequest request)
         {
-            _logger.LogInformation($"Invoke SayHello() with \"{JsonConvert.SerializeObject(request)}\"...");
             return Task.FromResult(new HelloReply { Message = $"Hello {request.Name}" });
         }
 
@@ -37,7 +36,6 @@ namespace FakeRpc.Example.Interface
         /// <returns></returns>
         public Task<HelloReply> SayWho()
         {
-            _logger.LogInformation("Invoke SayWho() with \"{ }\"...");
             return Task.FromResult(new HelloReply { Message = $"I'm 长安书小妆" });
         }
     }

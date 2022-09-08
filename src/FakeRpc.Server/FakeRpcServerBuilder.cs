@@ -2,14 +2,13 @@
 using CSRedis;
 using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
+using FakeRpc.Core.Invokers.WebSockets;
 using FakeRpc.Core.Mics;
 using FakeRpc.Core.Mvc;
 using FakeRpc.Core.Mvc.MessagePack;
 using FakeRpc.Core.Mvc.Protobuf;
 using FakeRpc.Core.Registry;
-using FakeRpc.Core.WebSockets;
 using FakeRpc.Server.Middlewares;
-using FakeRpc.Server.WebSockets;
 using MessagePack;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -57,7 +56,7 @@ namespace FakeRpc.Server
 
             _services.AddTransient<FakeRpcProtocolsProvider>();
 
-            _services.AddTransient<ISocketRpcBinder, ServerRpcBinder>();
+            _services.AddTransient<IWebSocketCallInvoker, ServerWebSocketCallInvoker>();
 
             return this;
         }

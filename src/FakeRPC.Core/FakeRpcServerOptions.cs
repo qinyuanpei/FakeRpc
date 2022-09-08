@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace FakeRpc.Server
+namespace FakeRpc.Core
 {
     public class FakeRpcServerOptions
     {

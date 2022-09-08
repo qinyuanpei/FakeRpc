@@ -1,6 +1,7 @@
 ﻿using FakeRpc.Core;
+using FakeRpc.Core.Invokers.WebSockets;
 using FakeRpc.Core.Mics;
-using FakeRpc.Core.WebSockets;
+using FakeRpc.Core.Serialize;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,17 +11,15 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FakeRpc.Client.WebSockets
+namespace FakeRpc.Client
 {
-    public class WebSocketClientProxyBase : DispatchProxy,IDisposable
+    public class WebSocketClientProxy<T> : DispatchProxy, IDisposable
     {
-        public Type ServiceType { get; set; }
-
         public WebSocket WebSocket { get; set; }
 
-        public ISocketRpcBinder SocketRpcBinder { get; set; }
+        public IWebSocketCallInvoker CallInvoker { get; set; }
 
-        public Uri Url { get; set; }
+        public Uri Uri { get; set; }
 
         protected override object Invoke(MethodInfo targetMethod, object[] args)
         {
@@ -28,43 +27,47 @@ namespace FakeRpc.Client.WebSockets
 
             while (WebSocket.State == WebSocketState.Closed)
             {
-                (WebSocket as ClientWebSocket).ConnectAsync(Url, CancellationToken.None);
+                (WebSocket as ClientWebSocket).ConnectAsync(Uri, CancellationToken.None);
             }
 
             dynamic result = null;
 
-            var request = FakeRpcRequest.Create(ServiceType);
+            var request = FakeRpcRequest.Create(typeof(T));
             request.MethodName = targetMethod.Name;
 
             var returnType = targetMethod.ReturnType;
             if (returnType.IsGenericType)
                 returnType = returnType.GetGenericArguments()[0];
 
-            SocketRpcBinder.OnReceive += response =>
+            CallInvoker.OnReceive += response =>
             {
                 if (response.Id != request.Id) return;
-                var jsonify = JsonConvert.SerializeObject(response.Result);
-                result = JsonConvert.DeserializeObject(jsonify, returnType);
+                result = JsonConvert.DeserializeObject(response.Result, returnType);
             };
 
             if (args.Length == 1)
             {
                 // Unary Request Call
                 var methodParam = new KeyValuePair<string, object>(targetMethod.GetParameters()[0].Name, args[0]);
-                request.MethodParams = new KeyValuePair<string, object>[] { methodParam };
+                request.MethodParams = JsonConvert.SerializeObject(new KeyValuePair<string, object>[] { methodParam });
             }
             else if (args.Length == 0)
             {
                 // Empty Request Call
-                request.MethodParams = new KeyValuePair<string, object>[] { };
+                request.MethodParams = JsonConvert.SerializeObject(new KeyValuePair<string, object>[] { });
             }
             else
             {
                 throw new Exception("FakeRpc only support a RPC method with 0 or 1 parameter");
             }
 
-            SocketRpcBinder?.Invoke(request, WebSocket);
-            while (result == null) { Thread.Sleep(1000); }
+            var contentType = FakeRpcMediaTypes.Default;
+            if (Uri.GetQueryStrings().TryGetValue("Content-Type", out var value))
+                contentType = value;
+
+            var serializationHandler = MessageSerializerFactory.Create(contentType);
+            CallInvoker?.Invoke(request, WebSocket, serializationHandler);
+            while (result == null) { Task.Delay(1); }
             return Task.FromResult(result);
         }
 
