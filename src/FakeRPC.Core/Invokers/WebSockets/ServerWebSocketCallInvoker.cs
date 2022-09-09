@@ -11,26 +11,40 @@ using FakeRpc.Core.Mics;
 using System.Linq;
 using Newtonsoft.Json;
 using System.Threading;
+using System.Threading.Channels;
 
 namespace FakeRpc.Core.Invokers.WebSockets
 {
     public class ServerWebSocketCallInvoker : IWebSocketCallInvoker
     {
 
+        private readonly WebSocket _webSocket;
+
+        private IMessageSerializer _messageSerializer;
+
         private readonly IServiceProvider _serviceProvider;
 
-        private readonly ILogger<ServerWebSocketCallInvoker> _logger;
+        private readonly ILogger<ServerWebSocketCallInvoker>? _logger;
 
-        public ServerWebSocketCallInvoker(IServiceProvider serviceProvider, ILogger<ServerWebSocketCallInvoker> logger)
+        private readonly Channel<ArraySegment<byte>> _messagesToSendQueue =
+            Channel.CreateUnbounded<ArraySegment<byte>>(new UnboundedChannelOptions() { SingleReader = true, SingleWriter = false });
+
+        public ServerWebSocketCallInvoker(IServiceProvider serviceProvider, WebSocket webSocket, IMessageSerializer messageSerializer)
         {
+            _webSocket = webSocket;
             _serviceProvider = serviceProvider;
-            _logger = logger;
+            _messageSerializer = messageSerializer;
+            _logger = serviceProvider.GetRequiredService<ILoggerFactory>()?.CreateLogger<ServerWebSocketCallInvoker>();
+            ListenMessageQueue();
         }
 
-        public Action<FakeRpcRequest> OnSend { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        public Action<FakeRpcResponse> OnReceive { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public EventHandler<FakeRpcRequest> OnMessageSent { get; set; }
+        public EventHandler<FakeRpcResponse> OnMessageReceived { get; set; }
+        public Action OnConnecting { get; set; }
+        public Action OnOpened { get; set; }
+        public Action OnClosed { get; set; }
 
-        public async Task Invoke(FakeRpcRequest request, WebSocket webSocket, IMessageSerializer serializationHandler)
+        public async Task InvokeAsync(FakeRpcRequest request)
         {
             var response = new FakeRpcResponse() { Id = request.Id };
 
@@ -43,8 +57,8 @@ namespace FakeRpc.Core.Invokers.WebSockets
                 if (serviceDescriptor == null)
                 {
                     response.Error = $"Please make sure the service \"{request.ServiceGroup}.{request.ServiceName}\" is registered.";
-                    _logger.LogError(response.Error);
-                    await SendMessage(response, webSocket, serializationHandler);
+                    _logger?.LogError(response.Error);
+                    await EnqueueMessage(response);
                     return;
                 }
 
@@ -55,8 +69,8 @@ namespace FakeRpc.Core.Invokers.WebSockets
                 if (serviceMethod == null)
                 {
                     response.Error = $"Please make sure the method \"{request.MethodName}\" is defined in the service \"{request.ServiceGroup}.{request.ServiceName}\".";
-                    _logger.LogError(response.Error);
-                    await SendMessage(response, webSocket, serializationHandler);
+                    _logger?.LogError(response.Error);
+                    await EnqueueMessage(response);
                     return;
                 }
 
@@ -69,25 +83,67 @@ namespace FakeRpc.Core.Invokers.WebSockets
                     var methodParams = JsonConvert.DeserializeObject(jsonfiyParams, parameterType);
                     dynamic ret = serviceMethod.Invoke(serviceInstance, new object[] { methodParams });
                     response.SetResult(ret.Result);
-                    _logger.LogInformation("Invoke {0}/{1}, Parameters:{2}, Returns:{3}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, jsonfiyParams, JsonConvert.SerializeObject((object)ret.Result));
+                    _logger?.LogInformation("Invoke {0}/{1}, Parameters:{2}, Returns:{3}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, jsonfiyParams, JsonConvert.SerializeObject((object)ret.Result));
                 }
                 else
                 {
                     dynamic ret = serviceMethod.Invoke(serviceInstance, null);
                     response.SetResult(ret.Result);
-                    _logger.LogInformation("Invoke {0}/{1}, Parameters: null, Returns:{2}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, JsonConvert.SerializeObject((object)ret.Result));
+                    _logger?.LogInformation("Invoke {0}/{1}, Parameters: null, Returns:{2}", serviceDescriptor.ServiceType.GetServiceName(), serviceMethod.Name, JsonConvert.SerializeObject((object)ret.Result));
                 }
 
-                await SendMessage(response, webSocket, serializationHandler);
+                await EnqueueMessage(response);
             }
 
         }
 
-        private async Task SendMessage(FakeRpcResponse response, WebSocket webSocket, IMessageSerializer serializationHandler)
+        public Task ConnectAsync(WebSocket webSocket, Uri uri, CancellationToken token)
         {
-            var payload = serializationHandler.Serialize(response);
-            await webSocket.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Binary, true, CancellationToken.None);
+            return Task.CompletedTask;
+        }
+        private async Task SendMessageInternal(ArraySegment<byte> message)
+        {
+            await _webSocket.SendAsync(message, WebSocketMessageType.Binary, true, CancellationToken.None);
+        }
 
+        private async Task EnqueueMessage(FakeRpcResponse response)
+        {
+            var payload = await _messageSerializer.SerializeAsync(response);
+            _messagesToSendQueue.Writer.TryWrite(new ArraySegment<byte>(payload));
+        }
+
+        private async Task SendMessagesFromQueue()
+        {
+            try
+            {
+                while (await _messagesToSendQueue.Reader.WaitToReadAsync())
+                {
+                    while (_messagesToSendQueue.Reader.TryRead(out var message))
+                    {
+                        try
+                        {
+                            await SendMessageInternal(message);
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.LogError(e, $"Failed to send message due to {e.Message}");
+                        }
+                    }
+                }
+            }
+            catch (TaskCanceledException){}
+            catch (OperationCanceledException){}
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"Restart listen message queue due to {e.Message}");
+                ListenMessageQueue();
+            }
+
+        }
+
+        private void ListenMessageQueue()
+        {
+            _ = Task.Factory.StartNew(_ => SendMessagesFromQueue(), TaskCreationOptions.LongRunning, CancellationToken.None);
         }
     }
 }

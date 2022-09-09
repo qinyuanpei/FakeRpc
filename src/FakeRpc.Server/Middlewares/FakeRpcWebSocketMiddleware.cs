@@ -22,15 +22,15 @@ namespace FakeRpc.Server.Middlewares
     {
         private readonly RequestDelegate _next;
 
-        private readonly IWebSocketCallInvoker _callInvoker;
+        private readonly IServiceProvider _serviceProvider;
 
         private readonly ILogger<FakeRpcWebSocketMiddleware> _logger;
 
-        public FakeRpcWebSocketMiddleware(RequestDelegate next, IWebSocketCallInvoker callInvoker, ILogger<FakeRpcWebSocketMiddleware> logger)
+        public FakeRpcWebSocketMiddleware(IServiceProvider serviceProvider, RequestDelegate next, ILogger<FakeRpcWebSocketMiddleware> logger)
         {
             _next = next;
             _logger = logger;
-            _callInvoker = callInvoker;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -41,24 +41,28 @@ namespace FakeRpc.Server.Middlewares
                 return;
             }
 
+            // MessageSerializer
             var connectionId = context.Connection.Id;
             var contentType = context.Request.Query["Content-Type"][0] ?? FakeRpcMediaTypes.Default;
-            var serializationHandler = MessageSerializerFactory.Create(contentType);
+            var messageSerializer = MessageSerializerFactory.Create(contentType);
 
+            // CallInvoker
             var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+            var callInvoker = new ServerWebSocketCallInvoker(_serviceProvider, webSocket, messageSerializer);
 
             _logger.LogInformation("Handle WebSocket Connection, ConnectionId: {0}, Content-Type: {1}...", connectionId, contentType);
 
-            await HandleWebSocket(webSocket, serializationHandler);
+            await HandleWebSocket(webSocket, messageSerializer, callInvoker);
 
         }
 
-        private async Task HandleWebSocket(WebSocket webSocket, IMessageSerializer serializationHandler)
+        private async Task HandleWebSocket(WebSocket webSocket, IMessageSerializer messageSerializer, IWebSocketCallInvoker callInvoker)
         {
             while (webSocket.State == WebSocketState.Open)
-            {
+            {               
+                var buffer = new byte[Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE];
+
                 var receivedLength = 0;
-                byte[] buffer = new byte[Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE];
                 WebSocketReceiveResult receiveResult = null;
 
                 do
@@ -75,6 +79,7 @@ namespace FakeRpc.Server.Middlewares
                 }
                 while (receiveResult?.EndOfMessage == false);
 
+                var bufferMemory = buffer.AsMemory();
                 switch (receiveResult.MessageType)
                 {
                     case WebSocketMessageType.Close:
@@ -82,10 +87,9 @@ namespace FakeRpc.Server.Middlewares
                         break;
                     case WebSocketMessageType.Binary:
                         // Protobuf 要求 byte[] 末尾不能有垃圾
-                        var bytes = new byte[receivedLength];
-                        Array.Copy(buffer, bytes, receivedLength);
-                        var request = await serializationHandler.DeserializeAsync<FakeRpcRequest>(bytes);
-                        await _callInvoker.Invoke(request, webSocket, serializationHandler);
+                        var bytes = bufferMemory.Slice(0, receivedLength).ToArray();
+                        var request = await messageSerializer.DeserializeAsync<FakeRpcRequest>(bytes);
+                        await callInvoker.InvokeAsync(request);
                         break;
                 }
             }

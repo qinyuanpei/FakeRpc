@@ -56,8 +56,6 @@ namespace FakeRpc.Server
 
             _services.AddTransient<FakeRpcProtocolsProvider>();
 
-            _services.AddTransient<IWebSocketCallInvoker, ServerWebSocketCallInvoker>();
-
             return this;
         }
 

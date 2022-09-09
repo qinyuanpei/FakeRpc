@@ -81,9 +81,12 @@ namespace FakeRpc.Client
             var formatedUrl = baseUrl.AbsoluteUri.Contains("?") ? new Uri($"{baseUrl.AbsoluteUri}&Content-Type={contentType}") :
                 new Uri($"{baseUrl.AbsoluteUri}?Content-Type={contentType}");
 
+            var serializationHandler = MessageSerializerFactory.Create(contentType);
+
+            var webSocket = new ClientWebSocket();
             var clientProxy = DispatchProxy.Create<TClient, WebSocketClientProxy<TClient>>();
-            (clientProxy as WebSocketClientProxy<TClient>).WebSocket = new ClientWebSocket();
-            (clientProxy as WebSocketClientProxy<TClient>).CallInvoker = _serviceProvider.GetService<IWebSocketCallInvoker>();
+            (clientProxy as WebSocketClientProxy<TClient>).WebSocket = webSocket;
+            (clientProxy as WebSocketClientProxy<TClient>).CallInvoker = new ClientWebSocketCallInvoker(_serviceProvider, webSocket, serializationHandler);
             (clientProxy as WebSocketClientProxy<TClient>).Uri = formatedUrl;
 
             ((clientProxy as WebSocketClientProxy<TClient>).WebSocket as ClientWebSocket).ConnectAsync(formatedUrl, CancellationToken.None);

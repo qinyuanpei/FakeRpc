@@ -23,26 +23,38 @@ namespace FakeRpc.Client
 
         protected override object Invoke(MethodInfo targetMethod, object[] args)
         {
-            while (WebSocket.State == WebSocketState.Connecting) { Task.Delay(1); }
-
-            while (WebSocket.State == WebSocketState.Closed)
-            {
-                (WebSocket as ClientWebSocket).ConnectAsync(Uri, CancellationToken.None);
-            }
-
             dynamic result = null;
 
+            // Prepare Request
             var request = FakeRpcRequest.Create(typeof(T));
             request.MethodName = targetMethod.Name;
 
-            var returnType = targetMethod.ReturnType;
-            if (returnType.IsGenericType)
-                returnType = returnType.GetGenericArguments()[0];
-
-            CallInvoker.OnReceive += response =>
+            CallInvoker.OnMessageReceived += (sender, response) =>
             {
+                // Resolve the type of return value
+                var returnType = targetMethod.ReturnType;
+                if (returnType.IsGenericType)
+                    returnType = returnType.GetGenericArguments()[0];
+
                 if (response.Id != request.Id) return;
                 result = JsonConvert.DeserializeObject(response.Result, returnType);
+            };
+
+            CallInvoker.OnClosed += () =>
+            {
+                //Console.WriteLine("ClientWebSocket is Closed. Prepare  to connect it again.");
+                CallInvoker.ConnectAsync(WebSocket, Uri, CancellationToken.None);
+            };
+
+            CallInvoker.OnConnecting += () =>
+            {
+                //Console.WriteLine("WebSocket Connecting...");
+                Task.Delay(1);
+            };
+
+            CallInvoker.OnOpened += () =>
+            {
+                //Console.WriteLine("WebSocket Opened.");
             };
 
             if (args.Length == 1)
@@ -61,14 +73,14 @@ namespace FakeRpc.Client
                 throw new Exception("FakeRpc only support a RPC method with 0 or 1 parameter");
             }
 
-            var contentType = FakeRpcMediaTypes.Default;
-            if (Uri.GetQueryStrings().TryGetValue("Content-Type", out var value))
-                contentType = value;
-
-            var serializationHandler = MessageSerializerFactory.Create(contentType);
-            CallInvoker?.Invoke(request, WebSocket, serializationHandler);
+            InternalInvoke(request);
             while (result == null) { Task.Delay(1); }
             return Task.FromResult(result);
+        }
+
+        private void InternalInvoke(FakeRpcRequest request)
+        {
+            CallInvoker?.InvokeAsync(request);
         }
 
         public void Dispose()
