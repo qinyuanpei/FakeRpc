@@ -1,5 +1,4 @@
-﻿using DevExpress.Xpo;
-using FakeRpc.Client;
+﻿using FakeRpc.Client;
 using FakeRpc.Core.Discovery;
 using FakeRpc.ServiceDiscovery.Nacos;
 using Microsoft.Extensions.DependencyInjection;

@@ -40,6 +40,16 @@ namespace FakeRpc.Client
                     returnType = returnType.GetGenericArguments()[0];
 
                 if (response.Id != request.Id) return;
+
+                var queryStrings = Uri.GetQueryStrings();
+                if (queryStrings.ContainsKey("Content-Type") && queryStrings["Content-Type"].Equals(FakeRpcMediaTypes.Protobuf))
+                {
+                    response.Result = response.Result.Replace("\\", "");
+                    var leftBraces = response.Result.IndexOf("{");
+                    var rightBraces = response.Result.LastIndexOf("}");
+                    response.Result = response.Result.Substring(leftBraces, rightBraces - leftBraces + 1);
+                }
+
                 result = JsonConvert.DeserializeObject(response.Result, returnType);
             };
 

@@ -40,7 +40,7 @@ namespace ClientExample
             var services = new ServiceCollection();
 
             services.AddLogging(option => option.AddConsole());
-            services.AddTransient<IWebSocketCallInvoker, ClientWebSocketCallInvoker>();
+            services.AddTransient<IClientWebSocketCallInvoker, ClientWebSocketCallInvoker>();
 
             var builder = new FakeRpcClientBuilder(services);
 
@@ -124,7 +124,7 @@ namespace ClientExample
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
             (greetProxy as IDisposable).Dispose();
-            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Default);
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.MessagePack);
             var result = calculatorProxy.Random();
             (calculatorProxy as IDisposable).Dispose();
         }
@@ -137,10 +137,8 @@ namespace ClientExample
             var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Protobuf);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            (greetProxy as IDisposable).Dispose();
             var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Protobuf);
             var result = calculatorProxy.Random();
-            (calculatorProxy as IDisposable).Dispose();
         }
     }
 }
