@@ -85,11 +85,13 @@ namespace FakeRpc.Client
 
             var webSocket = new ClientWebSocket();
             var clientProxy = DispatchProxy.Create<TClient, WebSocketClientProxy<TClient>>();
+            (clientProxy as WebSocketClientProxy<TClient>).Uri = formatedUrl;
             (clientProxy as WebSocketClientProxy<TClient>).WebSocket = webSocket;
             (clientProxy as WebSocketClientProxy<TClient>).CallInvoker = new ClientWebSocketCallInvoker(_serviceProvider, webSocket, serializationHandler);
-            (clientProxy as WebSocketClientProxy<TClient>).Uri = formatedUrl;
+            (clientProxy as WebSocketClientProxy<TClient>).Logger = _serviceProvider.GetService<ILoggerFactory>()?.CreateLogger<WebSocketClientProxy<TClient>>();
 
-            ((clientProxy as WebSocketClientProxy<TClient>).WebSocket as ClientWebSocket).ConnectAsync(formatedUrl, CancellationToken.None);
+            // 提前连接，以减少接口调用时长
+            ((clientProxy as WebSocketClientProxy<TClient>).WebSocket as ClientWebSocket).ConnectAsync(formatedUrl, CancellationToken.None).GetAwaiter().GetResult();
 
             return clientProxy;
         }

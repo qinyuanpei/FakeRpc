@@ -41,8 +41,9 @@ namespace FakeRpc.Server.Middlewares
                 return;
             }
 
-            // MessageSerializer
             var connectionId = context.Connection.Id;
+
+            // MessageSerializer
             var contentType = context.Request.Query["Content-Type"][0] ?? FakeRpcMediaTypes.Default;
             var messageSerializer = MessageSerializerFactory.Create(contentType);
 
@@ -52,44 +53,41 @@ namespace FakeRpc.Server.Middlewares
 
             _logger.LogInformation("Handle WebSocket Connection, ConnectionId: {0}, Content-Type: {1}...", connectionId, contentType);
 
-            await HandleWebSocket(webSocket, messageSerializer, callInvoker);
-
+            while (webSocket.State == WebSocketState.Open)
+            {
+                await HandleWebSocket(webSocket, callInvoker);
+            }
         }
 
-        private async Task HandleWebSocket(WebSocket webSocket, IMessageSerializer messageSerializer, IWebSocketCallInvoker callInvoker)
+        private async Task HandleWebSocket(WebSocket webSocket, IServerWebSocketCallInvoker callInvoker)
         {
-            while (webSocket.State == WebSocketState.Open)
-            {               
-                var buffer = new byte[Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE];
-
+            using (var stream = new MemoryStream())
+            {
                 var receivedLength = 0;
-                WebSocketReceiveResult receiveResult = null;
+                WebSocketReceiveResult receivedResult = null;
+                var receivedBuffer = new byte[Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE];
 
                 do
                 {
-                    receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                    receivedLength += receiveResult.Count;
+                    receivedResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(receivedBuffer), CancellationToken.None);
+                    await stream.WriteAsync(receivedBuffer, receivedLength, receivedResult.Count);
+                    receivedLength += receivedResult.Count;
                     if (receivedLength >= Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE)
                     {
                         var statusDescription = string.Format(Constants.FAKE_RPC_WEBSOCKET_MESSAGE_TOO_BIG, receivedLength, Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE);
                         await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, statusDescription, CancellationToken.None);
-                        break;
+                        return;
                     }
-
                 }
-                while (receiveResult?.EndOfMessage == false);
+                while (receivedResult?.EndOfMessage == false);
 
-                var bufferMemory = buffer.AsMemory();
-                switch (receiveResult.MessageType)
+                switch (receivedResult.MessageType)
                 {
                     case WebSocketMessageType.Close:
                         await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
                         break;
                     case WebSocketMessageType.Binary:
-                        // Protobuf 要求 byte[] 末尾不能有垃圾
-                        var bytes = bufferMemory.Slice(0, receivedLength).ToArray();
-                        var request = await messageSerializer.DeserializeAsync<FakeRpcRequest>(bytes);
-                        await callInvoker.InvokeAsync(request);
+                        await callInvoker.InvokeAsync(stream);
                         break;
                 }
             }

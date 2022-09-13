@@ -12,10 +12,11 @@ using System.Linq;
 using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Channels;
+using System.IO;
 
 namespace FakeRpc.Core.Invokers.WebSockets
 {
-    public class ServerWebSocketCallInvoker : IWebSocketCallInvoker
+    public class ServerWebSocketCallInvoker : IServerWebSocketCallInvoker
     {
 
         private readonly WebSocket _webSocket;
@@ -44,8 +45,9 @@ namespace FakeRpc.Core.Invokers.WebSockets
         public Action OnOpened { get; set; }
         public Action OnClosed { get; set; }
 
-        public async Task InvokeAsync(FakeRpcRequest request)
+        public async Task InvokeAsync(Stream stream)
         {
+            var request = _messageSerializer.Deserialize<FakeRpcRequest>((stream as MemoryStream).ToArray());
             var response = new FakeRpcResponse() { Id = request.Id };
 
             using (var scope = _serviceProvider.CreateScope())
@@ -94,7 +96,6 @@ namespace FakeRpc.Core.Invokers.WebSockets
 
                 await EnqueueMessage(response);
             }
-
         }
 
         public Task ConnectAsync(WebSocket webSocket, Uri uri, CancellationToken token)

@@ -2,6 +2,7 @@
 using FakeRpc.Core.Invokers.WebSockets;
 using FakeRpc.Core.Mics;
 using FakeRpc.Core.Serialize;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -13,11 +14,13 @@ using System.Threading.Tasks;
 
 namespace FakeRpc.Client
 {
-    public class WebSocketClientProxy<T> : DispatchProxy, IDisposable
+    public class WebSocketClientProxy<T> : DispatchProxy
     {
         public WebSocket WebSocket { get; set; }
 
-        public IWebSocketCallInvoker CallInvoker { get; set; }
+        public ILogger<WebSocketClientProxy<T>> Logger { get; set; }
+
+        public IClientWebSocketCallInvoker CallInvoker { get; set; }
 
         public Uri Uri { get; set; }
 
@@ -40,21 +43,21 @@ namespace FakeRpc.Client
                 result = JsonConvert.DeserializeObject(response.Result, returnType);
             };
 
-            CallInvoker.OnClosed += () =>
+            CallInvoker.OnClosed += (args) =>
             {
-                //Console.WriteLine("ClientWebSocket is Closed. Prepare  to connect it again.");
+                Logger.LogInformation("The connection of WebSocket is closed. Prepare  to connect it again.");
                 CallInvoker.ConnectAsync(WebSocket, Uri, CancellationToken.None);
             };
 
-            CallInvoker.OnConnecting += () =>
+            CallInvoker.OnConnecting += async () =>
             {
-                //Console.WriteLine("WebSocket Connecting...");
-                Task.Delay(1);
+                Logger.LogInformation("The connection of WebSocket is connecting...");
+                await Task.Delay(1000);
             };
 
             CallInvoker.OnOpened += () =>
             {
-                //Console.WriteLine("WebSocket Opened.");
+                Logger.LogInformation("The connection of WebSocket is ready.");
             };
 
             if (args.Length == 1)
@@ -73,20 +76,9 @@ namespace FakeRpc.Client
                 throw new Exception("FakeRpc only support a RPC method with 0 or 1 parameter");
             }
 
-            InternalInvoke(request);
+            CallInvoker?.InvokeAsync(request);
             while (result == null) { Task.Delay(1); }
             return Task.FromResult(result);
-        }
-
-        private void InternalInvoke(FakeRpcRequest request)
-        {
-            CallInvoker?.InvokeAsync(request);
-        }
-
-        public void Dispose()
-        {
-            WebSocket?.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
-            WebSocket?.Dispose();
         }
     }
 }
