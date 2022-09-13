@@ -109,10 +109,8 @@ namespace ClientExample
             var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Default);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            (greetProxy as IDisposable).Dispose();
             var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Default);
             var result = calculatorProxy.Random();
-            (calculatorProxy as IDisposable).Dispose();
         }
 
         [Benchmark(Baseline = false, Description = "Test FakeRpc with MessagePack & WebSocket", OperationsPerInvoke = 1)]
@@ -123,10 +121,8 @@ namespace ClientExample
             var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.MessagePack);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            (greetProxy as IDisposable).Dispose();
             var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.MessagePack);
             var result = calculatorProxy.Random();
-            (calculatorProxy as IDisposable).Dispose();
         }
 
         [Benchmark(Baseline = false, Description = "Test FakeRpc with Protobuf & WebSocket", OperationsPerInvoke = 1)]
