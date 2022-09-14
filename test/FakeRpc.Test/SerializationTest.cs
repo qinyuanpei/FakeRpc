@@ -34,10 +34,9 @@ namespace FakeRpc.Test
         public async Task Test_ParseRequestOfProtobuf()
         {
             // Arrange
-            //var request = new FakeRpcRequest();
-            //request.Id = Guid.NewGuid().ToString("N");
-            //request.ServiceName = "SayHello";
-            var request = JsonConvert.DeserializeObject<FakeRpcRequest>("{\"Id\":\"230d2b33c78c4c3f836edf40ffaf26b1\",\"ServiceName\":\"Calculator\",\"ServiceGroup\":\"FakeRpc.Example.Interface.Calculator\",\"MethodName\":\"Random\",\"MethodParams\":\"[]\"}");
+            var request = new FakeRpcRequest();
+            request.Id = Guid.NewGuid().ToString("N");
+            request.ServiceName = "SayHello";
 
             // Act
             var serializer = new ProtobufSerializer();
