@@ -44,7 +44,7 @@ namespace FakeRpc.Server.Middlewares
             var connectionId = context.Connection.Id;
 
             // MessageSerializer
-            var contentType = context.Request.Query["Content-Type"][0] ?? FakeRpcMediaTypes.Default;
+            var contentType = context.Request.Query["Content-Type"][0] ?? FakeRpcContentTypes.Default;
             var messageSerializer = MessageSerializerFactory.Create(contentType);
 
             // CallInvoker

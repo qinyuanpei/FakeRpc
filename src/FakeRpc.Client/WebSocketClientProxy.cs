@@ -42,7 +42,7 @@ namespace FakeRpc.Client
                 if (response.Id != request.Id) return;
 
                 var queryStrings = Uri.GetQueryStrings();
-                if (queryStrings.ContainsKey("Content-Type") && queryStrings["Content-Type"].Equals(FakeRpcMediaTypes.Protobuf))
+                if (queryStrings.ContainsKey(Constants.FAKE_RPC_HEADER_CONTENT_TYPE) && queryStrings[Constants.FAKE_RPC_HEADER_CONTENT_TYPE].Equals(FakeRpcContentTypes.Protobuf))
                 {
                     response.Result = response.Result.Replace("\\", "");
                     var leftBraces = response.Result.IndexOf("{");

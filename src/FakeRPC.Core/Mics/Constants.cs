@@ -27,5 +27,7 @@ namespace FakeRpc.Core.Mics
         public const int FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE = 64 * 1024;
 
         public const string FAKE_RPC_WEBSOCKET_MESSAGE_TOO_BIG = "The message exceeds the maximum allowed message size: {0} of allowed {1} bytes.";
+
+        public const string FAKE_RPC_HEADER_CONTENT_TYPE = "Content-Type";
     }
 }

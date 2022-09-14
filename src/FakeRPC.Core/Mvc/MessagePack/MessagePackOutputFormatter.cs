@@ -13,7 +13,7 @@ namespace FakeRpc.Core.Mvc.MessagePack
     {
         private readonly MessagePackSerializerOptions _options;
 
-        private static readonly StringSegment _mediaType = new StringSegment(FakeRpcMediaTypes.MessagePack);
+        private static readonly StringSegment _mediaType = new StringSegment(FakeRpcContentTypes.MessagePack);
 
         public MessagePackOutputFormatter(MessagePackSerializerOptions options = null)
         {

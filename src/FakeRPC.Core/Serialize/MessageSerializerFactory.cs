@@ -10,11 +10,11 @@ namespace FakeRpc.Core.Serialize
         {
             switch (contentType)
             {
-                case FakeRpcMediaTypes.Default:
+                case FakeRpcContentTypes.Default:
                     return new DefaultSerializer();
-                case FakeRpcMediaTypes.Protobuf:
+                case FakeRpcContentTypes.Protobuf:
                     return new ProtobufSerializer();
-                case FakeRpcMediaTypes.MessagePack:
+                case FakeRpcContentTypes.MessagePack:
                     return new MessagePackSerializer();
                 default:
                     return new DefaultSerializer();

@@ -55,18 +55,18 @@ namespace FakeRpc.Core.Invokers.Http
         {
             if (_serializer is DefaultSerializer)
             {
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcMediaTypes.Default));
-                httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcMediaTypes.Default);
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcContentTypes.Default));
+                httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcContentTypes.Default);
             }
             else if (_serializer is Serialize.MessagePackSerializer)
             {
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcMediaTypes.MessagePack));
-                httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcMediaTypes.MessagePack);
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcContentTypes.MessagePack));
+                httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcContentTypes.MessagePack);
             }
             else if (_serializer is ProtobufSerializer)
             {
-                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcMediaTypes.Protobuf));
-                httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcMediaTypes.Protobuf);
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcContentTypes.Protobuf));
+                httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcContentTypes.Protobuf);
             }
         }
     }

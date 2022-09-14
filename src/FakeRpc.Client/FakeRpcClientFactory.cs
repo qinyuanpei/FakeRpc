@@ -30,7 +30,7 @@ namespace FakeRpc.Client
             _loggerFactory = _serviceProvider.GetService<ILoggerFactory>();
         }
 
-        public TClient Create<TClient>(Uri baseUri, FakeRpcTransportProtocols transportProtocols = FakeRpcTransportProtocols.Http, string contentType = FakeRpcMediaTypes.Default)
+        public TClient Create<TClient>(Uri baseUri, FakeRpcTransportProtocols transportProtocols = FakeRpcTransportProtocols.Http, string contentType = FakeRpcContentTypes.Default)
         {
             switch (transportProtocols)
             {
@@ -45,7 +45,7 @@ namespace FakeRpc.Client
             throw new ArgumentException($"The specified transport protocol {Enum.GetName(typeof(FakeRpcTransportProtocols), transportProtocols)} does not support.");
         }
 
-        public TClient Discover<TClient>(FakeRpcTransportProtocols transportProtocols = FakeRpcTransportProtocols.Http, string contentType = FakeRpcMediaTypes.Default)
+        public TClient Discover<TClient>(FakeRpcTransportProtocols transportProtocols = FakeRpcTransportProtocols.Http, string contentType = FakeRpcContentTypes.Default)
         {
             var serviceDiscovery = _serviceProvider.GetService<IServiceDiscovery>();
             var serviceRegistration = serviceDiscovery.GetService<TClient>();
@@ -55,7 +55,7 @@ namespace FakeRpc.Client
             return Create<TClient>(serviceRegistration.ServiceUri, transportProtocols, contentType);
         }
 
-        private TClient CreateHttpClient<TClient>(Uri baseUri, string contentType = FakeRpcMediaTypes.Default)
+        private TClient CreateHttpClient<TClient>(Uri baseUri, string contentType = FakeRpcContentTypes.Default)
         {
             var httpClientFactory = _serviceProvider.GetService<IHttpClientFactory>();
             var httpClient = httpClientFactory.CreateClient();
@@ -70,16 +70,16 @@ namespace FakeRpc.Client
             return clientProxy;
         }
 
-        private TClient CreateHttpClient<TClient>(string baseUrl, string contentType = FakeRpcMediaTypes.Default)
+        private TClient CreateHttpClient<TClient>(string baseUrl, string contentType = FakeRpcContentTypes.Default)
         {
             var baseUri = new Uri(baseUrl);
             return CreateHttpClient<TClient>(baseUri, contentType);
         }
 
-        private TClient CreateWebSocketClient<TClient>(Uri baseUrl, string contentType = FakeRpcMediaTypes.Default)
+        private TClient CreateWebSocketClient<TClient>(Uri baseUrl, string contentType = FakeRpcContentTypes.Default)
         {
-            var formatedUrl = baseUrl.AbsoluteUri.Contains("?") ? new Uri($"{baseUrl.AbsoluteUri}&Content-Type={contentType}") :
-                new Uri($"{baseUrl.AbsoluteUri}?Content-Type={contentType}");
+            var formatedUrl = baseUrl.AbsoluteUri.Contains("?") ? new Uri($"{baseUrl.AbsoluteUri}&{Constants.FAKE_RPC_HEADER_CONTENT_TYPE}={contentType}") :
+                new Uri($"{baseUrl.AbsoluteUri}?{Constants.FAKE_RPC_HEADER_CONTENT_TYPE}={contentType}");
 
             var serializationHandler = MessageSerializerFactory.Create(contentType);
 
@@ -96,7 +96,7 @@ namespace FakeRpc.Client
             return clientProxy;
         }
 
-        private TClient CreateWebSocketClient<TClient>(string baseUrl, string contentType = FakeRpcMediaTypes.Default)
+        private TClient CreateWebSocketClient<TClient>(string baseUrl, string contentType = FakeRpcContentTypes.Default)
         {
             return CreateWebSocketClient<TClient>(new Uri(baseUrl), contentType);
         }

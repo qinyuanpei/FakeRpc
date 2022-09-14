@@ -68,7 +68,7 @@ namespace FakeRpc.Server
             {
                 options.InputFormatters.Add(new MessagePackInputFormatter(defaultSerializerOptions));
                 options.OutputFormatters.Add(new MessagePackOutputFormatter(defaultSerializerOptions));
-                options.FormatterMappings.SetMediaTypeMappingForFormat("msgpack", MediaTypeHeaderValue.Parse(FakeRpcMediaTypes.MessagePack));
+                options.FormatterMappings.SetMediaTypeMappingForFormat("msgpack", MediaTypeHeaderValue.Parse(FakeRpcContentTypes.MessagePack));
             });
 
             return this;
@@ -80,7 +80,7 @@ namespace FakeRpc.Server
             {
                 options.InputFormatters.Add(new ProtobufInputFormatter());
                 options.OutputFormatters.Add(new ProtobufOutputFormatter());
-                options.FormatterMappings.SetMediaTypeMappingForFormat("protobuf", MediaTypeHeaderValue.Parse(FakeRpcMediaTypes.Protobuf));
+                options.FormatterMappings.SetMediaTypeMappingForFormat("protobuf", MediaTypeHeaderValue.Parse(FakeRpcContentTypes.Protobuf));
             });
 
             return this;

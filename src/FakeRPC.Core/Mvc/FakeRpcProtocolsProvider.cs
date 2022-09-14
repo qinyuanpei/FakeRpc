@@ -18,10 +18,10 @@ namespace FakeRpc.Core.Mvc
             var protocols = new List<string>() { "application/json" };
 
             if (_options.Value.FormatterMappings.GetMediaTypeMappingForFormat("msgpack") != null)
-                protocols.Add(FakeRpcMediaTypes.MessagePack);
+                protocols.Add(FakeRpcContentTypes.MessagePack);
 
             if (_options.Value.FormatterMappings.GetMediaTypeMappingForFormat("protobuf") != null)
-                protocols.Add(FakeRpcMediaTypes.Protobuf);
+                protocols.Add(FakeRpcContentTypes.Protobuf);
 
             return protocols;
         }

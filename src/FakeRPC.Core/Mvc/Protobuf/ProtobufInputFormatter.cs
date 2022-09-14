@@ -16,7 +16,7 @@ namespace FakeRpc.Core.Mvc.Protobuf
 
         public static RuntimeTypeModel TypeModel => _typeModel.Value;
 
-        private static readonly StringSegment _mediaType = new StringSegment(FakeRpcMediaTypes.Protobuf);
+        private static readonly StringSegment _mediaType = new StringSegment(FakeRpcContentTypes.Protobuf);
 
         public ProtobufInputFormatter()
         {
