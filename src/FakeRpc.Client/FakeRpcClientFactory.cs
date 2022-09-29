@@ -1,6 +1,7 @@
 ﻿using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
 using FakeRpc.Core.Invokers.Http;
+using FakeRpc.Core.Invokers.Tcp;
 using FakeRpc.Core.Invokers.WebSockets;
 using FakeRpc.Core.Mics;
 using FakeRpc.Core.Serialize;
@@ -11,6 +12,7 @@ using Swashbuckle.AspNetCore.Swagger;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
@@ -39,7 +41,7 @@ namespace FakeRpc.Client
                 case FakeRpcTransportProtocols.WebSocket:
                     return CreateWebSocketClient<TClient>(baseUri, contentType);
                 case FakeRpcTransportProtocols.Tcp:
-                    break;
+                    return CreateTcpClient<TClient>(baseUri, contentType);
             }
 
             throw new ArgumentException($"The specified transport protocol {Enum.GetName(typeof(FakeRpcTransportProtocols), transportProtocols)} does not support.");
@@ -99,6 +101,31 @@ namespace FakeRpc.Client
         private TClient CreateWebSocketClient<TClient>(string baseUrl, string contentType = FakeRpcContentTypes.Default)
         {
             return CreateWebSocketClient<TClient>(new Uri(baseUrl), contentType);
+        }
+
+        private TClient CreateTcpClient<TClient>(Uri baseUrl, string contentType = FakeRpcContentTypes.Default)
+        {
+            var formatedUrl = baseUrl.AbsoluteUri.Contains("?") ? new Uri($"{baseUrl.AbsoluteUri}&{Constants.FAKE_RPC_HEADER_CONTENT_TYPE}={contentType}") :
+                new Uri($"{baseUrl.AbsoluteUri}?{Constants.FAKE_RPC_HEADER_CONTENT_TYPE}={contentType}");
+
+            var serializationHandler = MessageSerializerFactory.Create(contentType);
+
+            var tcpClient = new TcpClient();
+            var clientProxy = DispatchProxy.Create<TClient, TcpClientProxy<TClient>>();
+            (clientProxy as TcpClientProxy<TClient>).Uri = formatedUrl;
+            (clientProxy as TcpClientProxy<TClient>).TcpClient = tcpClient;
+            (clientProxy as TcpClientProxy<TClient>).CallInvoker = new ClientStreamingCallInvoker(_serviceProvider, tcpClient, serializationHandler);
+            (clientProxy as TcpClientProxy<TClient>).Logger = _serviceProvider.GetService<ILoggerFactory>()?.CreateLogger<TcpClientProxy<TClient>>();
+
+            // 提前连接，以减少接口调用时长
+            ((clientProxy as TcpClientProxy<TClient>).TcpClient).ConnectAsync(baseUrl.Host, baseUrl.Port).GetAwaiter().GetResult();
+
+            return clientProxy;
+        }
+
+        private TClient CreateTcpClient<TClient>(string baseUrl, string contentType = FakeRpcContentTypes.Default)
+        {
+            return CreateTcpClient<TClient>(new Uri(baseUrl), contentType);
         }
     }
 }
