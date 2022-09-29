@@ -84,7 +84,8 @@ namespace FakeRpc.Core.Invokers.Tcp
                 var length = await stream.ReadAsync(_buffer, receivedLength, _buffer.Length);
                 if (length == 0) break;
                 receivedBytes.AddRange(_buffer.AsMemory().Slice(0, length).ToArray());
-                if (receivedBytes.Count > Constants.FAKE_RPC_MAX_BUFFER_SIZE)
+                receivedLength += length;
+                if (receivedLength > Constants.FAKE_RPC_MAX_BUFFER_SIZE)
                 {
                     var error = string.Format(Constants.FAKE_RPC_WEBSOCKET_MESSAGE_TOO_BIG, receivedBytes.Count, Constants.FAKE_RPC_MAX_BUFFER_SIZE);
                     OnMessageReceived?.Invoke(this, new FakeRpcResponse() { Id = fakeRpcRequest.Id, Error = error });

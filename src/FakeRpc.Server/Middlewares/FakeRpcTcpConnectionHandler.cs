@@ -36,8 +36,14 @@ namespace FakeRpc.Server.Middlewares
 
                     // 写入响应
                     var buffer = new byte[Constants.FAKE_RPC_MAX_BUFFER_SIZE];
-                    var receivedLength = await stream.ReadAsync(buffer);
-                    await connection.Transport.Output.WriteAsync(buffer.AsMemory().Slice(0, receivedLength));
+                    var receivedLength = 0;
+                    while (true)
+                    {
+                        var length = await stream.ReadAsync(buffer, receivedLength, buffer.Length);
+                        if (length == 0) break;
+                        await connection.Transport.Output.WriteAsync(buffer.AsMemory().Slice(0, receivedLength));
+                        receivedLength += length;
+                    }
                 }
             }
         }
