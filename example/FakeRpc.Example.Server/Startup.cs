@@ -41,10 +41,11 @@ namespace ServerExample
             builder
                 .AddFakeRpc()
                 .UseMessagePack()
-                .UseUseProtobuf()
+                .UseProtobuf()
                 .EnableSwagger()
                 .AddExternalAssembly(typeof(GreetService).Assembly)
                 .AddExternalAssembly(typeof(GreetService).Assembly)
+                .AddTcpProtocol(8099)
                 /*.EnableRedisServiceRegistry(options => options.RedisUrl = "localhost:6379")*/;
                 //.EnableNacosServiceRegistry(options => options.ServerAddress = new List<string> { "http://localhost:8848" });
                 //.EnableConsulServiceRegistry(options => options.BaseUrl = "http://localhost:8500");

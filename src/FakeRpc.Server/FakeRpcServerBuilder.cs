@@ -2,6 +2,7 @@
 using CSRedis;
 using FakeRpc.Core;
 using FakeRpc.Core.Discovery;
+using FakeRpc.Core.Invokers.Tcp;
 using FakeRpc.Core.Invokers.WebSockets;
 using FakeRpc.Core.Mics;
 using FakeRpc.Core.Mvc;
@@ -11,6 +12,7 @@ using FakeRpc.Core.Registry;
 using FakeRpc.Server.Middlewares;
 using MessagePack;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
@@ -74,7 +76,7 @@ namespace FakeRpc.Server
             return this;
         }
 
-        public FakeRpcServerBuilder UseUseProtobuf()
+        public FakeRpcServerBuilder UseProtobuf()
         {
             _services.Configure<MvcOptions>(options =>
             {
@@ -123,6 +125,18 @@ namespace FakeRpc.Server
                 var assembly = Assembly.LoadFrom(Path.Combine(assemblyPath, assemblyFile));
                 AddExternalAssembly(assembly);
             }
+
+            return this;
+        }
+
+        public FakeRpcServerBuilder AddTcpProtocol(int port)
+        {
+            _services.AddSingleton<FakeRpcTcpConnectionHandler>();
+            _services.AddTransient<IServerStreamingCallInvoker, ServerStreamingCallInvoker>();
+            _services.Configure<KestrelServerOptions>(option => option.ListenAnyIP(port, x =>
+            {
+                x.UseConnectionHandler<FakeRpcTcpConnectionHandler>();
+            }));
 
             return this;
         }

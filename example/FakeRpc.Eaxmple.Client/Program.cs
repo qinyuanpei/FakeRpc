@@ -19,6 +19,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
 using FakeRpc.Core.Invokers.WebSockets;
+using FakeRpc.Core.Invokers.Tcp;
 
 namespace ClientExample
 {
@@ -26,7 +27,14 @@ namespace ClientExample
     {
         static async Task Main(string[] args)
         {
-            BenchmarkRunner.Run<TestContext>();
+            //BenchmarkRunner.Run<TestContext>();
+            var serviceProvider = new TestContext().InitIoc();
+            var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("http://localhost:8099"), FakeRpcTransportProtocols.Tcp, FakeRpcContentTypes.MessagePack);
+            var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
+            reply = await greetProxy.SayWho();
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("http://localhost:8099"), FakeRpcTransportProtocols.Tcp, FakeRpcContentTypes.Default);
+            var result = calculatorProxy.Random();
         }
     }
 
@@ -41,6 +49,7 @@ namespace ClientExample
 
             services.AddLogging(option => option.AddConsole());
             services.AddTransient<IClientWebSocketCallInvoker, ClientWebSocketCallInvoker>();
+            services.AddTransient<IClientStreamingCallInvoker, ClientStreamingCallInvoker>();
 
             var builder = new FakeRpcClientBuilder(services);
 
