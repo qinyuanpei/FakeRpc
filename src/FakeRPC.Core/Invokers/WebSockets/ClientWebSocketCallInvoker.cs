@@ -66,7 +66,7 @@ namespace FakeRpc.Core.Invokers.WebSockets
             using (var stream = new MemoryStream())
             {
                 var receivedLength = 0;
-                var receivedBuffer = new byte[Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE];
+                var receivedBuffer = new byte[Constants.FAKE_RPC_MAX_BUFFER_SIZE];
                 WebSocketReceiveResult receivedResult = null;
 
                 do
@@ -74,9 +74,9 @@ namespace FakeRpc.Core.Invokers.WebSockets
                     receivedResult = await _webSocket.ReceiveAsync(new ArraySegment<byte>(receivedBuffer), CancellationToken.None);
                     await stream.WriteAsync(receivedBuffer, receivedLength, receivedResult.Count);
                     receivedLength += receivedResult.Count;
-                    if (receivedLength >= Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE)
+                    if (receivedLength >= Constants.FAKE_RPC_MAX_BUFFER_SIZE)
                     {
-                        var statusDescription = string.Format(Constants.FAKE_RPC_WEBSOCKET_MESSAGE_TOO_BIG, receivedLength, Constants.FAKE_RPC_WEBSOCKET_MAX_BUFFER_SIZE);
+                        var statusDescription = string.Format(Constants.FAKE_RPC_WEBSOCKET_MESSAGE_TOO_BIG, receivedLength, Constants.FAKE_RPC_MAX_BUFFER_SIZE);
                         await _webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, statusDescription, CancellationToken.None);
                         OnClosed?.Invoke(new WebSocketClosedEventArgs() { CloseStatus = WebSocketCloseStatus.MessageTooBig, StatusDescription = statusDescription });
                         return;

@@ -1,4 +1,5 @@
 ﻿using FakeRpc.Core;
+using FlatSharp.Attributes;
 using MessagePack;
 using ProtoBuf;
 using System;
@@ -19,29 +20,36 @@ namespace FakeRpc.Example.Interface
     [Serializable]
     [ProtoContract]
     [MessagePackObject]
+    [FlatBufferTable]
     public class CalculatorReply
     {
         [Key(0)]
         [ProtoMember(1)]
+        [FlatBufferItem(0)]
         public string Expression { get; set; }
         [Key(1)]
         [ProtoMember(2)]
+        [FlatBufferItem(1)]
         public decimal Result { get; set; }
     }
 
     [Serializable]
     [ProtoContract]
     [MessagePackObject]
+    [FlatBufferTable]
     public class CalculatorRequest
     {
         [Key(0)]
         [ProtoMember(1)]
+        [FlatBufferItem(0)]
         public string Op { get; set; }
         [Key(1)]
         [ProtoMember(2)]
+        [FlatBufferItem(1)]
         public decimal Num1 { get; set; }
         [Key(2)]
         [ProtoMember(3)]
+        [FlatBufferItem(2)]
         public decimal Num2 { get; set; }
     }
 }

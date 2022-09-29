@@ -16,6 +16,8 @@ namespace FakeRpc.Core.Serialize
                     return new ProtobufSerializer();
                 case FakeRpcContentTypes.MessagePack:
                     return new MessagePackSerializer();
+                case FakeRpcContentTypes.FlatBuffer:
+                    return new FlatSharpSerializer();
                 default:
                     return new DefaultSerializer();
             }

@@ -1,4 +1,5 @@
 ﻿using FakeRpc.Core;
+using FlatSharp.Attributes;
 using MessagePack;
 using ProtoBuf;
 using System;
@@ -35,6 +36,7 @@ namespace FakeRpc.Example.Interface
     [Serializable]
     [ProtoContract]
     [MessagePackObject]
+    [FlatBufferTable]
     public class HelloReply
     {
         /// <summary>
@@ -42,6 +44,7 @@ namespace FakeRpc.Example.Interface
         /// </summary>
         [Key(0)]
         [ProtoMember(1)]
+        [FlatBufferItem(0)]
         public string Message { get; set; }
     }
 
@@ -51,6 +54,7 @@ namespace FakeRpc.Example.Interface
     [Serializable]
     [ProtoContract]
     [MessagePackObject]
+    [FlatBufferTable]
     public class HelloRequest
     {
         /// <summary>
@@ -58,6 +62,7 @@ namespace FakeRpc.Example.Interface
         /// </summary>
         [Key(0)]
         [ProtoMember(1)]
+        [FlatBufferItem(0)]
         public string Name { get; set; }
     }
 }

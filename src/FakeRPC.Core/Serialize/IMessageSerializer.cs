@@ -8,11 +8,11 @@ namespace FakeRpc.Core.Serialize
     public interface IMessageSerializer
     {
         // Serialize
-        byte[] Serialize<TMessage>(TMessage message);
-        Task<byte[]> SerializeAsync<TMessage>(TMessage message);
+        byte[] Serialize<TMessage>(TMessage message) where TMessage : class;
+        Task<byte[]> SerializeAsync<TMessage>(TMessage message) where TMessage : class;
 
         // Deserialize
-        TMessage Deserialize<TMessage>(byte[] bytes);
-        Task<TMessage> DeserializeAsync<TMessage>(byte[] bytes);
+        TMessage Deserialize<TMessage>(byte[] bytes) where TMessage : class;
+        Task<TMessage> DeserializeAsync<TMessage>(byte[] bytes) where TMessage : class;
     }
 }

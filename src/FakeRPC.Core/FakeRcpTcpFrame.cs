@@ -21,7 +21,7 @@ namespace FakeRpc.Core
     // |------------------------------------------------------| //
     // 
 
-    public class FakeRcpTcpFrame<TBody>
+    public class FakeRpcTcpFrame<TBody>
     {
         public int TotalLength { get; private set; }
 
@@ -31,12 +31,12 @@ namespace FakeRpc.Core
 
         public Dictionary<string, string> Header { get; set; }
 
-        public FakeRcpTcpFrame()
+        public FakeRpcTcpFrame()
         {
 
         }
 
-        public FakeRcpTcpFrame(TBody body, Dictionary<string, string> header, int totalLength, int headerLength)
+        public FakeRpcTcpFrame(TBody body, Dictionary<string, string> header, int totalLength, int headerLength)
         {
             Body = body;
             Header = header;
@@ -47,7 +47,7 @@ namespace FakeRpc.Core
 
     public static class FakeRpcTcpFrame
     {
-        public static FakeRcpTcpFrame<TBody> Decode<TBody>(byte[] bytes)
+        public static FakeRpcTcpFrame<TBody> Decode<TBody>(byte[] bytes) where TBody : class
         {
             var span = bytes.AsSpan();
 
@@ -74,10 +74,10 @@ namespace FakeRpc.Core
             var bytesOfBody = span.Slice(8 + headerLength, totalLength - (4 + headerLength)).ToArray();
             var body = messageSerializer.Deserialize<TBody>(bytesOfBody);
 
-            return new FakeRcpTcpFrame<TBody>(body, header, totalLength, headerLength);
+            return new FakeRpcTcpFrame<TBody>(body, header, totalLength, headerLength);
         }
 
-        public static byte[] Encode<TBody>(FakeRcpTcpFrame<TBody> tcpFrame, string contentType)
+        public static byte[] Encode<TBody>(FakeRpcTcpFrame<TBody> tcpFrame, string contentType) where TBody : class
         {
             if (tcpFrame.Header == null)
                 tcpFrame.Header = new Dictionary<string, string>();

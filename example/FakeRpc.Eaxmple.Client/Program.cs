@@ -70,10 +70,10 @@ namespace ClientExample
         {
             var serviceProvider = InitIoc();
             var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
-            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcMediaTypes.MessagePack);
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcContentTypes.MessagePack);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcMediaTypes.MessagePack);
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcContentTypes.MessagePack);
             var result = calculatorProxy.Random();
         }
 
@@ -82,10 +82,10 @@ namespace ClientExample
         {
             var serviceProvider = InitIoc();
             var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
-            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcMediaTypes.Protobuf);
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcContentTypes.Protobuf);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcMediaTypes.Protobuf);
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcContentTypes.Protobuf);
             var result = calculatorProxy.Random();
         }
 
@@ -94,10 +94,10 @@ namespace ClientExample
         {
             var serviceProvider = InitIoc();
             var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
-            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcMediaTypes.Default);
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcContentTypes.Default);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcMediaTypes.Default);
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("http://localhost:5000"), FakeRpcTransportProtocols.Http, FakeRpcContentTypes.Default);
             var result = calculatorProxy.Random();
         }
 
@@ -106,10 +106,10 @@ namespace ClientExample
         {
             var serviceProvider = InitIoc();
             var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
-            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Default);
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.Default);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Default);
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.Default);
             var result = calculatorProxy.Random();
         }
 
@@ -118,10 +118,10 @@ namespace ClientExample
         {
             var serviceProvider = InitIoc();
             var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
-            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.MessagePack);
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.MessagePack);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.MessagePack);
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.MessagePack);
             var result = calculatorProxy.Random();
         }
 
@@ -130,10 +130,22 @@ namespace ClientExample
         {
             var serviceProvider = InitIoc();
             var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
-            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Protobuf);
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.Protobuf);
             var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
             reply = await greetProxy.SayWho();
-            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcMediaTypes.Protobuf);
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.Protobuf);
+            var result = calculatorProxy.Random();
+        }
+
+        [Benchmark(Baseline = false, Description = "Test FakeRpc with FlatBuffer & WebSocket", OperationsPerInvoke = 1)]
+        public async Task RunWebSocketWithFlatBuffer()
+        {
+            var serviceProvider = InitIoc();
+            var _clientFactory = serviceProvider.GetService<FakeRpcClientFactory>();
+            var greetProxy = _clientFactory.Create<IGreetService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.Protobuf);
+            var reply = await greetProxy.SayHello(new HelloRequest() { Name = "张三" });
+            reply = await greetProxy.SayWho();
+            var calculatorProxy = _clientFactory.Create<ICalculatorService>(new Uri("ws://localhost:5000"), FakeRpcTransportProtocols.WebSocket, FakeRpcContentTypes.Protobuf);
             var result = calculatorProxy.Random();
         }
     }

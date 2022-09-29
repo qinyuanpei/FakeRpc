@@ -83,6 +83,42 @@ namespace FakeRpc.Test
             Assert.True(newRequest.ServiceName == request.ServiceName);
         }
 
+
+        [Fact]
+        public async Task Test_ParseResponseOfFlatBuffer()
+        {
+            // Arrange
+            var response = new FakeRpcResponse();
+            response.Id = Guid.NewGuid().ToString("N");
+            response.SetResult(new { Type = "RPC", Name = "FakeRPC" });
+
+            // Act
+            var serializer = new Core.Serialize.FlatSharpSerializer();
+            var bytes = await serializer.SerializeAsync(response);
+            var newResponse = await serializer.DeserializeAsync<FakeRpcResponse>(bytes);
+
+            // Assert
+            Assert.True(newResponse.Id == response.Id);
+        }
+
+        [Fact]
+        public async Task Test_ParseRequestOfFlatBuffer()
+        {
+            // Arrange
+            var request = new FakeRpcRequest();
+            request.Id = Guid.NewGuid().ToString("N");
+            request.ServiceName = "SayHello";
+
+            // Act
+            var serializer = new Core.Serialize.FlatSharpSerializer();
+            var bytes = await serializer.SerializeAsync(request);
+            var newRequest = await serializer.DeserializeAsync<FakeRpcRequest>(bytes);
+
+            // Assert
+            Assert.True(newRequest.Id == request.Id);
+            Assert.True(newRequest.ServiceName == request.ServiceName);
+        }
+
     }
 }
 

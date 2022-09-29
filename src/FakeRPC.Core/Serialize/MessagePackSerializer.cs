@@ -16,7 +16,7 @@ namespace FakeRpc.Core.Serialize
             _options = ContractlessStandardResolver.Options.WithCompression(MessagePackCompression.Lz4Block);
         }
 
-        public byte[] Serialize<TMessage>(TMessage message)
+        public byte[] Serialize<TMessage>(TMessage message) where TMessage : class
         {
             using (var stream = new MemoryStream())
             {
@@ -25,7 +25,7 @@ namespace FakeRpc.Core.Serialize
             }
         }
 
-        public async Task<byte[]> SerializeAsync<TMessage>(TMessage message)
+        public async Task<byte[]> SerializeAsync<TMessage>(TMessage message) where TMessage : class
         {
             using (var stream = new MemoryStream())
             {
@@ -34,7 +34,7 @@ namespace FakeRpc.Core.Serialize
             }
         }
 
-        public TMessage Deserialize<TMessage>(byte[] bytes)
+        public TMessage Deserialize<TMessage>(byte[] bytes) where TMessage : class
         {
             using (var readStream = new MemoryStream(bytes))
             {
@@ -42,7 +42,7 @@ namespace FakeRpc.Core.Serialize
             }
         }
 
-        public Task<TMessage> DeserializeAsync<TMessage>(byte[] bytes)
+        public Task<TMessage> DeserializeAsync<TMessage>(byte[] bytes) where TMessage : class
         {
             using (var readStream = new MemoryStream(bytes))
             {

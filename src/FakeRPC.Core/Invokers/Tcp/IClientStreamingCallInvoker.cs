@@ -8,6 +8,10 @@ namespace FakeRpc.Core.Invokers.Tcp
 {
     public interface IClientStreamingCallInvoker
     {
+        EventHandler<FakeRpcRequest> OnMessageSent { get; set; }
+
+        EventHandler<FakeRpcResponse> OnMessageReceived { get; set; }
+
         Task InvokeAsync(FakeRpcRequest fakeRpcRequest);
     }
 }

@@ -16,7 +16,7 @@ namespace FakeRpc.Test
         public void Test_TcpFrame_EncodeDecode()
         {
             // Arrange
-            var tcpFrame = new FakeRcpTcpFrame<FakeRpcRequest>();
+            var tcpFrame = new FakeRpcTcpFrame<FakeRpcRequest>();
             tcpFrame.Body = new FakeRpcRequest() { Id = Guid.NewGuid().ToString(), MethodName = "SayHello" };
 
             // Act
@@ -34,7 +34,7 @@ namespace FakeRpc.Test
         public void Test_TcpFrame_Validate()
         {
             // Arrange
-            var tcpFrame = new FakeRcpTcpFrame<FakeRpcRequest>();
+            var tcpFrame = new FakeRpcTcpFrame<FakeRpcRequest>();
             tcpFrame.Body = new FakeRpcRequest() { Id = Guid.NewGuid().ToString(), MethodName = "SayHello" };
 
             // Act

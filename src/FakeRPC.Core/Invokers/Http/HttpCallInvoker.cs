@@ -23,7 +23,7 @@ namespace FakeRpc.Core.Invokers.Http
             _serializer = serializer;
         }
 
-        public async Task<TResponse> CallAsync<TRequest, TResponse>(Uri uri, TRequest request)
+        public async Task<TResponse> CallAsync<TRequest, TResponse>(Uri uri, TRequest request) where TRequest : class where TResponse : class
         {
             var payload = await _serializer.SerializeAsync(request);
             var httpContent = new ByteArrayContent(payload);
@@ -33,7 +33,7 @@ namespace FakeRpc.Core.Invokers.Http
             return await _serializer.DeserializeAsync<TResponse>(payload);
         }
 
-        public Task<TResponse> CallAsync<TResponse>(Uri uri)
+        public Task<TResponse> CallAsync<TResponse>(Uri uri) where TResponse : class
         {
             if (_serializer is DefaultSerializer)
             {
@@ -67,6 +67,11 @@ namespace FakeRpc.Core.Invokers.Http
             {
                 _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcContentTypes.Protobuf));
                 httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcContentTypes.Protobuf);
+            }
+            else if  (_serializer is FlatSharpSerializer)
+            {
+                _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(FakeRpcContentTypes.FlatBuffer));
+                httpContent.Headers.ContentType = new MediaTypeHeaderValue(FakeRpcContentTypes.FlatBuffer);
             }
         }
     }
